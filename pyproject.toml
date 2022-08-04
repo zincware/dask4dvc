@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "dask4dvc"
+version = "0.1.0"
+description = "Use dask to run the DVC graph"
+authors = ["zincwarecode <zincwarecode@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+dask = "^2022.7.1"
+distributed = "^2022.7.1"
+dvc = "^2.15.0"
+pygit2 = "1.9.2"
+jupyterlab = "^3.4.4"
+bokeh = "^2.4.3"
+
+[tool.poetry.dev-dependencies]
+black = "^22.6.0"
+isort = "^5.10.1"
+pytest = "^7.1.2"
+pytest-xdist = "^2.5.0"
+coverage = "^6.4.2"
+pre-commit = "^2.20.0"
+
+[tool.poetry.scripts]
+dask4dvc = 'dask4dvc:run'
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.black]
+line-length = 90
+preview = true
+
+[tool.isort]
+profile = 'black'
+multi_line_output = 3
