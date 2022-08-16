@@ -14,6 +14,7 @@ dvc = "^2.15.0"
 pygit2 = "1.9.2"
 jupyterlab = "^3.4.4"
 bokeh = "^2.4.3"
+typer = "^0.6.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
@@ -24,7 +25,7 @@ coverage = "^6.4.2"
 pre-commit = "^2.20.0"
 
 [tool.poetry.scripts]
-dask4dvc = 'dask4dvc:run'
+dask4dvc = 'dask4dvc.cli:app'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
