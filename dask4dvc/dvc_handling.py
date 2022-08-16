@@ -42,12 +42,21 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, deps=None) -> None:
         subprocess.check_call(["dvc", "repro"], cwd=cwd)
 
 
-def prepare_dvc_workspace(name: str = None, cwd=None) -> pathlib.Path:
+def prepare_dvc_workspace(
+    name: str = None, cwd=None, commit: bool = False
+) -> pathlib.Path:
     """Prepare a DVC workspace copy in a temporary directory
+
+    Attributes
+    ----------
+    cwd: pathlib.Path, (optional)
+        The working directory to start from.
+    commit: bool, (default=False)
+        Apply the patch and commit the changes.
 
     Returns
     -------
-    tmp_dir: pathlib.Path
+    cwd: pathlib.Path
         A directory which contains a clone of the cwd repository.
         The DVC cache is set to the cwd cache. # TODO what if the cache was moved
 
@@ -77,6 +86,9 @@ def prepare_dvc_workspace(name: str = None, cwd=None) -> pathlib.Path:
     subprocess.check_call(["git", "apply", "patch"], cwd=tmp_dir)
     patch_file.unlink()
 
+    subprocess.check_call(["git", "add", "."], cwd=tmp_dir)
+    subprocess.check_call(["git", "commit", "-m", "apply patch"], cwd=tmp_dir)
+
     return tmp_dir
 
 
@@ -103,8 +115,8 @@ def load_all_exp_to_tmp_dir() -> typing.Dict[str, pathlib.Path]:
     for exp_name in queued_exp:
         load_exp_into_workspace(exp_name)
         tmp_dirs[exp_name] = prepare_dvc_workspace(
-            name=exp_name[:8]
-        )  # limit exp name to 8 digits
+            name=exp_name[:8], commit=True  # limit exp name to 8 digits
+        )
 
     return tmp_dirs
 

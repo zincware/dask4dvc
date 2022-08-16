@@ -60,7 +60,7 @@ def _repro(
 
 
 @app.command()
-def exp(name: str = None) -> None:
+def run(name: str = None) -> None:
     # TODO rename to exp run
     cleanup = True
 
@@ -71,13 +71,7 @@ def exp(name: str = None) -> None:
             log.warning("Starting dask server")
             output = {}
             for tmp_dir in tmp_dirs.values():
-                subprocess.check_call(["git", "add", "."], cwd=tmp_dir)
-                subprocess.check_call(["git", "commit", "-m", "apply patch"], cwd=tmp_dir)
                 output.update(_repro(client, cwd=tmp_dir, cleanup=cleanup))
-
-            print(50 * "#-")
-            print([x for x in output])
-            print(50 * "#-")
 
             dask4dvc.utils.wait_for_futures(output)
             # clean up exp temp tmp_dirs
