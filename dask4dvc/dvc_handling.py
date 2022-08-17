@@ -43,7 +43,7 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, deps=None) -> None:
 
 
 def prepare_dvc_workspace(
-    name: str = None, cwd=None, commit: bool = False
+    name: str = None, cwd=None, commit: bool = False, cleanup: bool = True
 ) -> pathlib.Path:
     """Prepare a DVC workspace copy in a temporary directory
 
@@ -53,6 +53,8 @@ def prepare_dvc_workspace(
         The working directory to start from.
     commit: bool, (default=False)
         Apply the patch and commit the changes.
+    cleanup: bool, (default=True)
+        Remove the patch file
 
     Returns
     -------
@@ -61,6 +63,7 @@ def prepare_dvc_workspace(
         The DVC cache is set to the cwd cache. # TODO what if the cache was moved
 
     """
+    # TODO run in single temporary directory which is git added to avoid crowding the CWD with potentially many Nodes?
     if cwd is None:
         cwd = pathlib.Path().cwd()
     if name is None:
@@ -84,22 +87,24 @@ def prepare_dvc_workspace(
     patch_file = tmp_dir / "patch"
     patch_file.write_text(git_diff.stdout.decode("utf-8"))
     subprocess.check_call(["git", "apply", "patch"], cwd=tmp_dir)
-    patch_file.unlink()
-
-    subprocess.check_call(["git", "add", "."], cwd=tmp_dir)
-    subprocess.check_call(["git", "commit", "-m", "apply patch"], cwd=tmp_dir)
+    if cleanup:
+        patch_file.unlink()
+    if commit:
+        subprocess.check_call(["git", "add", "."], cwd=tmp_dir)
+        subprocess.check_call(["git", "commit", "-m", "apply patch"], cwd=tmp_dir)
 
     return tmp_dir
 
 
 def submit_dvc_stage(name, deps=None, cwd: pathlib.Path = None, cleanup: bool = True):
     # cwd is None if repro, cwd is set when using exp
-    tmp_dir = prepare_dvc_workspace(cwd=cwd)  # dask4dvc repro
+    tmp_dir = prepare_dvc_workspace(cwd=cwd, cleanup=cleanup)  # dask4dvc repro
     try:
         run_dvc_repro_in_cwd(node_name=name, cwd=tmp_dir.as_posix())
     except subprocess.CalledProcessError as err:
         # remove the tmp directory even if failed
-        shutil.rmtree(tmp_dir)
+        if cleanup:
+            shutil.rmtree(tmp_dir)
         raise subprocess.CalledProcessError(
             returncode=err.returncode, cmd=err.cmd
         ) from err
