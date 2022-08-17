@@ -97,6 +97,23 @@ def prepare_dvc_workspace(
 
 
 def submit_dvc_stage(name, deps=None, cwd: pathlib.Path = None, cleanup: bool = True):
+    """Run a DVC stage
+
+    1. prepare a temporary workspace
+    2. run 'dvc repro'
+    3. if requested, cleanup the workspace
+
+    Parameters
+    ----------
+    name: str
+        Name of the Node
+    deps: any dependencies for Dask to build the graph
+    cwd: pathlib.Path
+        The working directory for the repro command.
+        Will be None for 'dvc repro' and set to a custom directory for e.g. 'dvc exp run'
+    cleanup: bool, default=True
+        Remove the workspace after execution. Will also remove if an error occurs.
+    """
     # cwd is None if repro, cwd is set when using exp
     tmp_dir = prepare_dvc_workspace(cwd=cwd, cleanup=cleanup)  # dask4dvc repro
     try:
@@ -113,8 +130,13 @@ def submit_dvc_stage(name, deps=None, cwd: pathlib.Path = None, cleanup: bool = 
 
 
 def load_all_exp_to_tmp_dir() -> typing.Dict[str, pathlib.Path]:
-    # TODO consider rewriting everything with temp dir into a context manager?
-    # Execute this in the workspace
+    """Load all queued expments into temporary directories each.
+
+    Returns
+    -------
+    A dictionary of the created directories with the experiment names as keys.
+
+    """
     queued_exp = get_queued_exp_names()
     tmp_dirs = {}
     for exp_name in queued_exp:
@@ -137,6 +159,7 @@ def run_all_exp() -> None:
 
 
 def run_single_exp(queue_id: str) -> None:
+    """Run a single experiment. This will modify your workspace"""
     # see https://github.com/iterative/dvc/issues/8121
     subprocess.check_call(["dvc", "exp", "apply", queue_id])
     subprocess.check_call(["dvc", "exp", "run"])
@@ -144,6 +167,7 @@ def run_single_exp(queue_id: str) -> None:
 
 
 def load_exp_to_dict() -> dict:
+    """Convert 'dvc exp show' to a python dict"""
     json_dict = subprocess.run(
         ["dvc", "exp", "show", "--json"], capture_output=True, check=True
     )
@@ -152,6 +176,7 @@ def load_exp_to_dict() -> dict:
 
 
 def get_queued_exp_names() -> list:
+    """Get all currently queued experiments (names)"""
     exp_dict = load_exp_to_dict()
     # I don't understand why they separate this into workspace and some hash?
     base_key = [x for x in exp_dict if x != "workspace"][0]

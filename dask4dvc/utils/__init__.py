@@ -10,6 +10,12 @@ __all__ = ["get_starting_nodes", "iterate_over_nodes", "submit_to_dask"]
 
 
 def wait_for_futures(futures: typing.Dict[str, Future]):
+    """Wait for all given future objects to complete
+
+    Raises
+    ------
+    This will fail if one of them fails.
+    """
     for future in futures.values():
         _ = future.result()
 

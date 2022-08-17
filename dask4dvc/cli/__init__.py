@@ -35,6 +35,10 @@ def repro(
     ),
     cleanup: bool = typer.Option(True, help=Help.cleanup),
 ):
+    """Replicate 'dvc repro' command
+
+    Run 'dvc repro' with parallel execution through Dask distributed.
+    """
     log.debug("Running dvc repro")
     # TODO If the files are not git tracked, they won't be in the git diff! so make
     #  sure all relevant files are git tracked
@@ -62,6 +66,7 @@ def repro(
 def _repro(
     client: dask.distributed.Client, cwd=None, cleanup: bool = True
 ) -> dask4dvc.typehints.FUTURE_DICT:
+    """replicate dvc repro with a given client"""
     # TODO what if the CWD is not where the repo is. E.g. if the worker is launchend in a different directory?
     graph = dask4dvc.dvc_handling.get_dvc_graph(cwd=cwd)  # should work correctly in cwd
     node_pairs = dask4dvc.utils.iterate_over_nodes(graph)  # this only gives names
@@ -84,6 +89,10 @@ def run(
     ),
     cleanup: bool = typer.Option(True, help=Help.cleanup),
 ) -> None:
+    """Replicate 'dvc exp run --run-all'
+
+    Run 'dvc exp run --run-all' with full parallel execution using Dask distributed.
+    """
     # TODO rename to exp run
     cleanup = cleanup
 
