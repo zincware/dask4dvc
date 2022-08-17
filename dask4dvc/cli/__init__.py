@@ -1,7 +1,5 @@
 import logging
 import shutil
-import subprocess
-import typing
 
 import dask.distributed
 import typer
@@ -14,6 +12,16 @@ app = typer.Typer()
 log = logging.getLogger(__name__)
 
 
+class Help:
+    """Collect typer help strings that are used multiple times."""
+
+    address: str = (
+        "This can be the address of a DASK Scheduler server like '127.0.0.1:8786'. If"
+        " None Dask will launch a new Server."
+    )
+    cleanup: str = "Remove the temporary directories"
+
+
 @app.command()
 def repro(
     tmp: bool = typer.Option(
@@ -21,15 +29,22 @@ def repro(
         help="Only run experiment in temporary directory and don't load into workspace",
     ),
     wait: bool = typer.Option(True, help="Ask before stopping the client"),
+    address: str = typer.Option(
+        None,
+        help=Help.address,
+    ),
+    cleanup: bool = typer.Option(True, help=Help.cleanup),
 ):
-    print("Running dvc repro")
-    with dask.distributed.Client() as client:
-        log.warning("Dask server initialized")
-        output = _repro(client)
+    log.debug("Running dvc repro")
+    # TODO If the files are not git tracked, they won't be in the git diff! so make
+    #  sure all relevant files are git tracked
+    with dask.distributed.Client(address) as client:
+        log.info("Dask server initialized")
+        output = _repro(client, cleanup=cleanup)
 
         dask4dvc.utils.wait_for_futures(output)
         if not tmp:
-            log.warning("Loading into workspace")
+            log.info("Loading into workspace")
             result = client.submit(
                 dask4dvc.dvc_handling.run_dvc_repro_in_cwd,
                 node_name=None,
@@ -47,6 +62,7 @@ def repro(
 def _repro(
     client: dask.distributed.Client, cwd=None, cleanup: bool = True
 ) -> dask4dvc.typehints.FUTURE_DICT:
+    # TODO what if the CWD is not where the repo is. E.g. if the worker is launchend in a different directory?
     graph = dask4dvc.dvc_handling.get_dvc_graph(cwd=cwd)  # should work correctly in cwd
     node_pairs = dask4dvc.utils.iterate_over_nodes(graph)  # this only gives names
 
@@ -60,15 +76,22 @@ def _repro(
 
 
 @app.command()
-def run(name: str = None) -> None:
+def run(
+    name: str = None,
+    address: str = typer.Option(
+        None,
+        help=Help.address,
+    ),
+    cleanup: bool = typer.Option(True, help=Help.cleanup),
+) -> None:
     # TODO rename to exp run
-    cleanup = True
+    cleanup = cleanup
 
     if name is None:
         tmp_dirs = dask4dvc.dvc_handling.load_all_exp_to_tmp_dir()
 
-        with dask.distributed.Client() as client:
-            log.warning("Starting dask server")
+        with dask.distributed.Client(address) as client:
+            log.info("Starting dask server")
             output = {}
             for tmp_dir in tmp_dirs.values():
                 output.update(_repro(client, cwd=tmp_dir, cleanup=cleanup))
@@ -78,18 +101,15 @@ def run(name: str = None) -> None:
             if cleanup:
                 for tmp_dir in tmp_dirs.values():
                     shutil.rmtree(tmp_dir)
-            answer = input(
-                "Press Enter to load experiments and close dask client (yes/no)"
-            )
+                answer = input(
+                    "Press Enter to load experiments and close dask client (yes/no)"
+                )
 
         if answer == "yes":
             for exp_name in tmp_dirs:
-                print(50 * "#-")
-                print(f"Loading experiment {exp_name}")
-                print(50 * "#-")
+                log.info(f"Loading experiment {exp_name}")
+                # TODO I think this should probably be done on a client submit as well
                 dask4dvc.dvc_handling.run_single_exp(exp_name)
-            # dask4dvc.dvc_handling.run_all_exp()
-
         return
     else:
         raise ValueError("reproducing single experiments is currently not possible")
