@@ -1,10 +1,16 @@
-# DASK4DVC - Use DASK to run the DVC graph
+# Dask4DVC - Distributed Node Exectuion
+[DVC](dvc.org) provides tools for building and executing the computiational graph locally through variouse methods. Currently DVC graphs can be challenging to deply on HPC resources, e.g. using [Slurm](https://github.com/SchedMD/slurm) or deploy the graph fully in parallel (see https://dvc.org/doc/command-reference/repro#parallel-stage-execution). 
+Dask4DVC uses [Dask Distributed](https://distributed.dask.org/) to 
+- fully parallelize Graph execution, even through multiple experiments.
+- allow for easy deployment on HPC resources.
 
-Dask4DVC allows you to run you DVC graph through DASK.
-Two interfaces are available:
-1. CLI for easy, local parallization
-2. Python Interface for defining a Cluster and deploying the calculations on Nodes.
+## Usage
+Dask4DVC provides a CLI similar to DVC. The core functionality is build around the `dvc repro` and `dvc exp run` commands.
 
-The CLI can also read a client configuration from a config file.
+- `dvc repro` becomes `dask4dvc repro`
+- `dvc exp run` becomes `dask4dvc run`
 
-To reproduce your current graph like `dvc repro` you can call `dask4dvc repro`.
+Both commands will launch a Dask Server which can be accessed through `127.0.0.1:8787` 
+
+## Custom Workers
+You can start a scheduler via `dask-scheduler` and then a worker (in the cwd of your project!) via `dask-worker tcp://127.0.0.1:8786` and use `dask4dvc repro --adress 127.0.0.1:8786`

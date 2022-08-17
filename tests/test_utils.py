@@ -1,3 +1,4 @@
+import re
 from unittest import mock
 
 import networkx as nx
@@ -69,7 +70,9 @@ def test_submit_to_dask():
 
     results = dask4dvc.utils.submit_to_dask(client=client, node_pairs=node_pairs, cmd=cmd)
 
-    assert "Node1" in results
-    assert "Node2" in results
-    assert "Node3" in results
+    for node in ["Node1", "Node2", "Node2"]:
+        # Test that all Node names occur.
+        # The regex tests for e.g. 5c9dc848_Node1 with exactly 8 leading characters
+        r = re.compile(r"^[a-zA-Z0-9]{8}_" + node)
+        assert any(filter(r.match, results))
     # assert client.submit.assert_called_with(name="Node3")

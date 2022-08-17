@@ -42,16 +42,28 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, deps=None) -> None:
         subprocess.check_call(["dvc", "repro"], cwd=cwd)
 
 
-def prepare_dvc_workspace(name: str = None, cwd=None) -> pathlib.Path:
+def prepare_dvc_workspace(
+    name: str = None, cwd=None, commit: bool = False, cleanup: bool = True
+) -> pathlib.Path:
     """Prepare a DVC workspace copy in a temporary directory
+
+    Attributes
+    ----------
+    cwd: pathlib.Path, (optional)
+        The working directory to start from.
+    commit: bool, (default=False)
+        Apply the patch and commit the changes.
+    cleanup: bool, (default=True)
+        Remove the patch file
 
     Returns
     -------
-    tmp_dir: pathlib.Path
+    cwd: pathlib.Path
         A directory which contains a clone of the cwd repository.
         The DVC cache is set to the cwd cache. # TODO what if the cache was moved
 
     """
+    # TODO run in single temporary directory which is git added to avoid crowding the CWD with potentially many Nodes?
     if cwd is None:
         cwd = pathlib.Path().cwd()
     if name is None:
@@ -75,19 +87,41 @@ def prepare_dvc_workspace(name: str = None, cwd=None) -> pathlib.Path:
     patch_file = tmp_dir / "patch"
     patch_file.write_text(git_diff.stdout.decode("utf-8"))
     subprocess.check_call(["git", "apply", "patch"], cwd=tmp_dir)
-    patch_file.unlink()
+    if cleanup:
+        patch_file.unlink()
+    if commit:
+        subprocess.check_call(["git", "add", "."], cwd=tmp_dir)
+        subprocess.check_call(["git", "commit", "-m", "apply patch"], cwd=tmp_dir)
 
     return tmp_dir
 
 
 def submit_dvc_stage(name, deps=None, cwd: pathlib.Path = None, cleanup: bool = True):
+    """Run a DVC stage
+
+    1. prepare a temporary workspace
+    2. run 'dvc repro'
+    3. if requested, cleanup the workspace
+
+    Parameters
+    ----------
+    name: str
+        Name of the Node
+    deps: any dependencies for Dask to build the graph
+    cwd: pathlib.Path
+        The working directory for the repro command.
+        Will be None for 'dvc repro' and set to a custom directory for e.g. 'dvc exp run'
+    cleanup: bool, default=True
+        Remove the workspace after execution. Will also remove if an error occurs.
+    """
     # cwd is None if repro, cwd is set when using exp
-    tmp_dir = prepare_dvc_workspace(cwd=cwd)  # dask4dvc repro
+    tmp_dir = prepare_dvc_workspace(cwd=cwd, cleanup=cleanup)  # dask4dvc repro
     try:
         run_dvc_repro_in_cwd(node_name=name, cwd=tmp_dir.as_posix())
     except subprocess.CalledProcessError as err:
         # remove the tmp directory even if failed
-        shutil.rmtree(tmp_dir)
+        if cleanup:
+            shutil.rmtree(tmp_dir)
         raise subprocess.CalledProcessError(
             returncode=err.returncode, cmd=err.cmd
         ) from err
@@ -96,15 +130,20 @@ def submit_dvc_stage(name, deps=None, cwd: pathlib.Path = None, cleanup: bool = 
 
 
 def load_all_exp_to_tmp_dir() -> typing.Dict[str, pathlib.Path]:
-    # TODO consider rewriting everything with temp dir into a context manager?
-    # Execute this in the workspace
+    """Load all queued expments into temporary directories each.
+
+    Returns
+    -------
+    A dictionary of the created directories with the experiment names as keys.
+
+    """
     queued_exp = get_queued_exp_names()
     tmp_dirs = {}
     for exp_name in queued_exp:
         load_exp_into_workspace(exp_name)
         tmp_dirs[exp_name] = prepare_dvc_workspace(
-            name=exp_name[:8]
-        )  # limit exp name to 8 digits
+            name=exp_name[:8], commit=True  # limit exp name to 8 digits
+        )
 
     return tmp_dirs
 
@@ -120,6 +159,7 @@ def run_all_exp() -> None:
 
 
 def run_single_exp(queue_id: str) -> None:
+    """Run a single experiment. This will modify your workspace"""
     # see https://github.com/iterative/dvc/issues/8121
     subprocess.check_call(["dvc", "exp", "apply", queue_id])
     subprocess.check_call(["dvc", "exp", "run"])
@@ -127,6 +167,7 @@ def run_single_exp(queue_id: str) -> None:
 
 
 def load_exp_to_dict() -> dict:
+    """Convert 'dvc exp show' to a python dict"""
     json_dict = subprocess.run(
         ["dvc", "exp", "show", "--json"], capture_output=True, check=True
     )
@@ -135,6 +176,7 @@ def load_exp_to_dict() -> dict:
 
 
 def get_queued_exp_names() -> list:
+    """Get all currently queued experiments (names)"""
     exp_dict = load_exp_to_dict()
     # I don't understand why they separate this into workspace and some hash?
     base_key = [x for x in exp_dict if x != "workspace"][0]
