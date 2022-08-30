@@ -93,9 +93,6 @@ def run(
 
     Run 'dvc exp run --run-all' with full parallel execution using Dask distributed.
     """
-    # TODO rename to exp run
-    cleanup = cleanup
-
     if name is None:
         tmp_dirs = dask4dvc.dvc_handling.load_all_exp_to_tmp_dir()
 
@@ -111,7 +108,7 @@ def run(
                 for tmp_dir in tmp_dirs.values():
                     shutil.rmtree(tmp_dir)
                 answer = input(
-                    "Press Enter to load experiments and close dask client (yes/no)"
+                    "Press Enter to load experiments and close dask client (yes/no) "
                 )
 
         if answer == "yes":
@@ -133,7 +130,7 @@ def run(
 
 
 def version_callback(value: bool):
-    """Get the installed zntrack version"""
+    """Get the installed dask4dvc version"""
     if value:
         typer.echo(f"dask4dvc {dask4dvc.__version__}")
         raise typer.Exit()
@@ -145,7 +142,8 @@ def main(
         None, "--version", callback=version_callback, is_eager=True
     ),
 ):
-    """
-    <update me>
+    """Dask4DVC
+
+    Run the DVC graph or DVC experiments in parallel using dask.
     """
     _ = version  # this would be greyed out otherwise

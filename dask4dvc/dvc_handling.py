@@ -12,7 +12,10 @@ import dask4dvc.utils
 
 
 def get_dvc_graph(cwd=None) -> nx.DiGraph:
-    """Use the dvc dag command to get the graph into networkx format"""
+    """Use the dvc dag command to get the graph into networkx format
+
+    Running 'dvc dag' can be slow on bigger graphs.
+    """
     dot_string = subprocess.run(
         ["dvc", "dag", "--dot"], capture_output=True, check=True, cwd=cwd
     )
@@ -30,6 +33,9 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, deps=None) -> None:
         Name of the stage to be run
     cwd: str
         working directory
+
+    deps: list[dask.distributed.Future]|Future
+        Any dependencies for the dask graph
 
     Raises
     -------
@@ -96,7 +102,9 @@ def prepare_dvc_workspace(
     return tmp_dir
 
 
-def submit_dvc_stage(name, deps=None, cwd: pathlib.Path = None, cleanup: bool = True):
+def submit_dvc_stage(
+    name: str, deps=None, cwd: pathlib.Path = None, cleanup: bool = True
+):
     """Run a DVC stage
 
     1. prepare a temporary workspace
@@ -107,7 +115,8 @@ def submit_dvc_stage(name, deps=None, cwd: pathlib.Path = None, cleanup: bool = 
     ----------
     name: str
         Name of the Node
-    deps: any dependencies for Dask to build the graph
+    deps: list[dask.distributed.Future]|Future
+        any dependencies for Dask to build the graph
     cwd: pathlib.Path
         The working directory for the repro command.
         Will be None for 'dvc repro' and set to a custom directory for e.g. 'dvc exp run'
@@ -130,12 +139,11 @@ def submit_dvc_stage(name, deps=None, cwd: pathlib.Path = None, cleanup: bool = 
 
 
 def load_all_exp_to_tmp_dir() -> typing.Dict[str, pathlib.Path]:
-    """Load all queued expments into temporary directories each.
+    """Load all queued experiments into temporary directories each.
 
     Returns
     -------
     A dictionary of the created directories with the experiment names as keys.
-
     """
     queued_exp = get_queued_exp_names()
     tmp_dirs = {}

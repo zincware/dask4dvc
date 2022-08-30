@@ -59,8 +59,11 @@ def iterate_over_nodes(
 
 
 def submit_to_dask(
-    client: dask.distributed.Client, node_pairs, cmd: typing.Callable, **kwargs
-):
+    client: dask.distributed.Client,
+    node_pairs: typing.List[tuple],
+    cmd: typing.Callable,
+    **kwargs,
+) -> typing.Dict[str, dask.distributed.Future]:
     """Use the node_pairs to map the DVC graph onto a dask graph.
 
     Parameters
@@ -77,6 +80,10 @@ def submit_to_dask(
 
     Returns
     -------
+
+    dict: A dictionary with a unique submission id as key and the respective dask node
+            as value. The unique key is added for parallel execution of experiments with
+            the same Node name.
 
     """
 
