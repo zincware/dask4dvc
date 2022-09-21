@@ -15,6 +15,7 @@ pygit2 = "1.9.2"
 jupyterlab = "^3.4.4"
 bokeh = "^2.4.3"
 typer = "^0.6.1"
+gitpython = "^3.1.27"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"

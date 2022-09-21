@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import typing
 
+import git
 import networkx as nx
 import pydot
 
@@ -48,8 +49,50 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, deps=None) -> None:
         subprocess.check_call(["dvc", "repro"], cwd=cwd)
 
 
+def _apply_git_diff(source_repo: git.Repo, target_repo: git.Repo) -> None:
+    """Apply the uncommitted changed in source repo to target repo"""
+    git_diff = source_repo.git.diff("HEAD")
+    if git_diff == "":
+        return
+    patch_file = pathlib.Path(target_repo.working_dir) / "patch"
+    patch_file.write_text(git_diff, encoding="utf-8")
+    target_repo.git.execute(["git", "apply", "--whitespace=fix", "patch"])
+    patch_file.unlink()
+
+
+def clone(source: pathlib.Path, target: pathlib.Path) -> git.Repo:
+    """Make a copy of a DVC repository and thereby, update the cache as well
+
+    Parameters
+    ----------
+    source: pathlib.Path
+        The source repository to be cloned
+    target: pathlib.Path
+        The target path to save the repository at
+
+    Returns
+    -------
+    target_repo: git.Repo
+        The newly created repository
+    """
+
+    # Clone the repository
+    source_repo = git.Repo(source.resolve())
+    target_repo = source_repo.clone(target.resolve())
+    _apply_git_diff(source_repo, target_repo)
+
+    # Set the cache directory to source
+    target_repo.git.execute(
+        ["dvc", "cache", "dir", str(source.resolve() / ".dvc" / "cache")]
+    )
+
+    return target_repo
+
+
 def prepare_dvc_workspace(
-    name: str = None, cwd=None, commit: bool = False, cleanup: bool = True
+    name: str = None,
+    cwd=None,
+    commit: bool = False,
 ) -> pathlib.Path:
     """Prepare a DVC workspace copy in a temporary directory
 
@@ -59,8 +102,6 @@ def prepare_dvc_workspace(
         The working directory to start from.
     commit: bool, (default=False)
         Apply the patch and commit the changes.
-    cleanup: bool, (default=True)
-        Remove the patch file
 
     Returns
     -------
@@ -77,28 +118,11 @@ def prepare_dvc_workspace(
     else:
         tmp_dir = cwd / pathlib.Path(f"tmp_{name}")
 
-    tmp_dir.mkdir(exist_ok=False)
+    target_repo = clone(cwd, tmp_dir)
 
-    subprocess.check_call(["git", "clone", cwd, tmp_dir.resolve()])
-    subprocess.check_call(
-        ["dvc", "cache", "dir", pathlib.Path().cwd() / ".dvc" / "cache"], cwd=tmp_dir
-    )
-    # !! this has to be set to the true cwd work directory instead of the cwd that is
-    #   given, which may not be to true cwd
-
-    # check if git diff is None
-    git_diff = subprocess.run(["git", "diff"], capture_output=True, cwd=cwd)
-    if git_diff.stdout == b"":
-        return tmp_dir
-    patch_file = tmp_dir / "patch"
-    patch_file.write_text(git_diff.stdout.decode("utf-8"))
-    subprocess.check_call(["git", "apply", "patch"], cwd=tmp_dir)
-    if cleanup:
-        patch_file.unlink()
     if commit:
-        subprocess.check_call(["git", "add", "."], cwd=tmp_dir)
-        subprocess.check_call(["git", "commit", "-m", "apply patch"], cwd=tmp_dir)
-
+        target_repo.index.add(".")
+        target_repo.index.commit("apply patch")
     return tmp_dir
 
 
@@ -124,7 +148,7 @@ def submit_dvc_stage(
         Remove the workspace after execution. Will also remove if an error occurs.
     """
     # cwd is None if repro, cwd is set when using exp
-    tmp_dir = prepare_dvc_workspace(cwd=cwd, cleanup=cleanup)  # dask4dvc repro
+    tmp_dir = prepare_dvc_workspace(cwd=cwd)  # dask4dvc repro
     try:
         run_dvc_repro_in_cwd(node_name=name, cwd=tmp_dir.as_posix())
     except subprocess.CalledProcessError as err:

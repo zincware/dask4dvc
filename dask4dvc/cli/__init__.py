@@ -1,4 +1,5 @@
 import logging
+import pathlib
 import shutil
 
 import dask.distributed
@@ -115,6 +116,7 @@ def run(
             for exp_name in tmp_dirs:
                 log.info(f"Loading experiment {exp_name}")
                 # TODO I think this should probably be done on a client submit as well
+                # TODO you can use dvc status to check if it only has to be loaded?
                 dask4dvc.dvc_handling.run_single_exp(exp_name)
         return
     else:
@@ -127,6 +129,34 @@ def run(
     # after the experiment finished we can load it into the workspace from runcache
     # this is currently not supported, see https://github.com/iterative/dvc/issues/8121
     # dask4dvc.dvc_handling.run_exp(name)
+
+
+@app.command()
+def clone(
+    source: str = typer.Argument(
+        ..., help="Repository to clone from", show_default=False
+    ),
+    target: str = typer.Argument(..., help="target directory / path", show_default=False),
+    branch: bool = typer.Option(
+        False, "--branch", help="Create a new branch after cloning"
+    ),
+    branch_name: str = typer.Option(
+        None,
+        help=(
+            "The name of the new branch. If using `--branch` without providing a branch"
+            " name the 'target' name is used as branch name. This will imply usage"
+            " `--branch`"
+        ),
+        show_default=False,
+    ),
+) -> None:
+    """Make a copy the source DVC repository at the destination"""
+    target_repo = dask4dvc.dvc_handling.clone(pathlib.Path(source), pathlib.Path(target))
+    if branch or branch_name:
+        if branch_name is None:
+            branch_name = pathlib.Path(target).name
+        target_branch = target_repo.create_head(branch_name)
+        target_branch.checkout()
 
 
 def version_callback(value: bool):
