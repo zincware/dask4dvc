@@ -12,5 +12,7 @@ Dask4DVC provides a CLI similar to DVC. The core functionality is build around t
 
 Both commands will launch a Dask Server which can be accessed through `127.0.0.1:8787` 
 
+Further more there is: 
+- ``dask4dvc clone <source> <target>`` to make a clone of a DVC repository with a shared cache.
 ## Custom Workers
 You can start a scheduler via `dask-scheduler` and then a worker (in the cwd of your project!) via `dask-worker tcp://127.0.0.1:8786` and use `dask4dvc repro --adress 127.0.0.1:8786`

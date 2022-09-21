@@ -1,3 +1,4 @@
+"""Typer based CLI interface of dask4dvc"""
 import logging
 import pathlib
 import shutil
@@ -119,8 +120,7 @@ def run(
                 # TODO you can use dvc status to check if it only has to be loaded?
                 dask4dvc.dvc_handling.run_single_exp(exp_name)
         return
-    else:
-        raise ValueError("reproducing single experiments is currently not possible")
+    raise ValueError("reproducing single experiments is currently not possible")
     # log.warning(f"Running experiment {name}")
     # TODO consider stashing the current workspace, then load the exp and run it in
     #  tmp_dir then load the stash again to not modify the workspace.
@@ -149,14 +149,30 @@ def clone(
         ),
         show_default=False,
     ),
+    checkout: bool = typer.Option(
+        False, "--checkout", help="Run dvc checkout after cloning"
+    ),
 ) -> None:
-    """Make a copy the source DVC repository at the destination"""
+    """Make a copy the source DVC repository at the target destination
+
+    This method will
+    - clone your repository \n
+    - direct the run-cache on the remote repository to the one on the source \n
+    - apply all changes of the current workspace to the target repository \n
+
+    Optionally, it will create a new branch on the target repository based on the name
+    of the directory.
+    """
     target_repo = dask4dvc.dvc_handling.clone(pathlib.Path(source), pathlib.Path(target))
     if branch or branch_name:
         if branch_name is None:
             branch_name = pathlib.Path(target).name
         target_branch = target_repo.create_head(branch_name)
         target_branch.checkout()
+    if checkout:
+        target_repo.git.execute(["dvc", "checkout"])
+
+    # TODO remove repository if anything fails
 
 
 def version_callback(value: bool):
