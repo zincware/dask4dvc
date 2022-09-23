@@ -42,10 +42,12 @@ def test_clone_patch(dvc_repository, tmp_path):
 
     # now we have uncommitted changes
     target_dir = tmp_path / "branch1"
-    result = runner.invoke(app, ["clone", dvc_repository.working_dir, str(target_dir)])
+    result = runner.invoke(
+        app, ["clone", dvc_repository.working_dir, str(target_dir), "--apply-diff"]
+    )
     assert result.exit_code == 0
 
-    assert (target_dir / "script").read_text() == "Hello World\n"
+    assert (target_dir / "script").read_text() == "Hello World"
     target_repo = git.Repo(target_dir)
     assert target_repo.is_dirty()
 

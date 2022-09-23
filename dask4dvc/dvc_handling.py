@@ -49,44 +49,44 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, deps=None) -> None:
         subprocess.check_call(["dvc", "repro"], cwd=cwd)
 
 
-def _apply_git_diff(source_repo: git.Repo, target_repo: git.Repo) -> None:
+def apply_git_diff(source_repo: git.Repo, target_repo: git.Repo) -> None:
     """Apply the uncommitted changed in source repo to target repo"""
     git_diff = source_repo.git.diff("HEAD")
     if git_diff == "":
         return
     patch_file = pathlib.Path(target_repo.working_dir) / "patch"
-    patch_file.write_text(git_diff, encoding="utf-8")
+    patch_file.write_text(git_diff)
     target_repo.git.execute(["git", "apply", "--whitespace=fix", "patch"])
     patch_file.unlink()
 
 
-def clone(source: pathlib.Path, target: pathlib.Path) -> git.Repo:
+def clone(source: pathlib.Path, target: pathlib.Path) -> (git.Repo, git.Repo):
     """Make a copy of a DVC repository and thereby, update the cache as well
 
     Parameters
     ----------
     source: pathlib.Path
-        The source repository to be cloned
+        The path to the source repository to be cloned
     target: pathlib.Path
         The target path to save the repository at
 
     Returns
     -------
-    target_repo: git.Repo
+    source_repo, target_repo: (git.Repo, git.Repo)
+        The source repository
         The newly created repository
     """
 
     # Clone the repository
     source_repo = git.Repo(source.resolve())
     target_repo = source_repo.clone(target.resolve())
-    _apply_git_diff(source_repo, target_repo)
 
     # Set the cache directory to source
     target_repo.git.execute(
         ["dvc", "cache", "dir", str(source.resolve() / ".dvc" / "cache")]
     )
 
-    return target_repo
+    return source_repo, target_repo
 
 
 def prepare_dvc_workspace(
@@ -118,7 +118,8 @@ def prepare_dvc_workspace(
     else:
         tmp_dir = cwd / pathlib.Path(f"tmp_{name}")
 
-    target_repo = clone(cwd, tmp_dir)
+    source_repo, target_repo = clone(cwd, tmp_dir)
+    apply_git_diff(source_repo, target_repo)
 
     if commit:
         target_repo.index.add(".")

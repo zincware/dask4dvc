@@ -152,6 +152,13 @@ def clone(
     checkout: bool = typer.Option(
         False, "--checkout", help="Run dvc checkout after cloning"
     ),
+    apply_diff: bool = typer.Option(
+        False,
+        "--apply-diff",
+        help=(
+            "Apply a patch git diff <src> after cloning to copy all changed files as well"
+        ),
+    ),
 ) -> None:
     """Make a copy the source DVC repository at the target destination
 
@@ -163,12 +170,17 @@ def clone(
     Optionally, it will create a new branch on the target repository based on the name
     of the directory.
     """
-    target_repo = dask4dvc.dvc_handling.clone(pathlib.Path(source), pathlib.Path(target))
+    source = pathlib.Path(source)
+    source_repo, target_repo = dask4dvc.dvc_handling.clone(
+        pathlib.Path(source), pathlib.Path(target)
+    )
     if branch or branch_name:
         if branch_name is None:
             branch_name = pathlib.Path(target).name
         target_branch = target_repo.create_head(branch_name)
         target_branch.checkout()
+    if apply_diff:
+        dask4dvc.dvc_handling.apply_git_diff(source_repo, target_repo)
     if checkout:
         target_repo.git.execute(["dvc", "checkout"])
 
