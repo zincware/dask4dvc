@@ -25,7 +25,7 @@ def get_dvc_graph(cwd=None) -> nx.DiGraph:
     return nx.DiGraph(nx.nx_pydot.from_pydot(dot_graph))
 
 
-def run_dvc_repro_in_cwd(node_name: str, cwd=None, deps=None) -> None:
+def run_dvc_repro_in_cwd(node_name: str, cwd=None, options=None, deps=None) -> None:
     """Run the dvc repro cmd for a selected stage in a given cwd
 
     Parameters
@@ -43,10 +43,12 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, deps=None) -> None:
     subprocess.CalledProcessError: if dvc cmd fails
 
     """
+    if options is None:
+        options = []
     if node_name is not None:
-        subprocess.check_call(["dvc", "repro", node_name], cwd=cwd)
+        subprocess.check_call(["dvc", "repro", node_name] + options, cwd=cwd)
     else:
-        subprocess.check_call(["dvc", "repro"], cwd=cwd)
+        subprocess.check_call(["dvc", "repro"] + options, cwd=cwd)
 
 
 def apply_git_diff(source_repo: git.Repo, target_repo: git.Repo) -> None:
@@ -130,7 +132,11 @@ def prepare_dvc_workspace(
 
 
 def submit_dvc_stage(
-    name: str, deps=None, cwd: pathlib.Path = None, cleanup: bool = True
+    name: str,
+    deps=None,
+    cwd: pathlib.Path = None,
+    cleanup: bool = True,
+    repro_options: list = None,
 ):
     """Run a DVC stage
 
@@ -149,11 +155,15 @@ def submit_dvc_stage(
         Will be None for 'dvc repro' and set to a custom directory for e.g. 'dvc exp run'
     cleanup: bool, default=True
         Remove the workspace after execution. Will also remove if an error occurs.
+    repro_options: list, default=None
+        Additional options to pass to 'dvc repro' e.g. ['--force']
     """
     # cwd is None if repro, cwd is set when using exp
     tmp_dir = prepare_dvc_workspace(cwd=cwd)  # dask4dvc repro
     try:
-        run_dvc_repro_in_cwd(node_name=name, cwd=tmp_dir.as_posix())
+        run_dvc_repro_in_cwd(
+            node_name=name, cwd=tmp_dir.as_posix(), options=repro_options
+        )
     except subprocess.CalledProcessError as err:
         # remove the tmp directory even if failed
         if cleanup:

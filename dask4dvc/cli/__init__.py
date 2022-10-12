@@ -2,6 +2,7 @@
 import logging
 import pathlib
 import shutil
+import typing
 
 import dask.distributed
 import typer
@@ -36,6 +37,14 @@ def repro(
         help=Help.address,
     ),
     cleanup: bool = typer.Option(True, help=Help.cleanup),
+    option: typing.List[str] = typer.Option(
+        None,
+        help=(
+            "Additional options to pass to 'dvc repro'. E.g. '--option=--force"
+            " --option=--downstream'. Notice that some options like '--force' might"
+            " show unexpected behavior."
+        ),
+    ),
 ):
     """Replicate 'dvc repro' command
 
@@ -47,7 +56,7 @@ def repro(
     #  sure all relevant files are git tracked
     with dask.distributed.Client(address) as client:
         log.info("Dask server initialized")
-        output = _repro(client, cleanup=cleanup)
+        output = _repro(client, cleanup=cleanup, repro_options=option)
 
         dask4dvc.utils.wait_for_futures(output)
         if not tmp:
@@ -57,6 +66,7 @@ def repro(
                 node_name=None,
                 deps=output,
                 pure=False,
+                options=option
             )
             _ = (
                 result.result()
@@ -67,7 +77,10 @@ def repro(
 
 
 def _repro(
-    client: dask.distributed.Client, cwd=None, cleanup: bool = True
+    client: dask.distributed.Client,
+    cwd=None,
+    cleanup: bool = True,
+    repro_options: list = None,
 ) -> dask4dvc.typehints.FUTURE_DICT:
     """replicate dvc repro with a given client"""
     # TODO what if the CWD is not where the repo is. E.g. if the worker is launchend in a different directory?
@@ -80,6 +93,7 @@ def _repro(
         cmd=dask4dvc.dvc_handling.submit_dvc_stage,
         cwd=cwd,
         cleanup=cleanup,
+        repro_options=repro_options,
     )
 
 
