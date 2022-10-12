@@ -55,7 +55,10 @@ def apply_git_diff(source_repo: git.Repo, target_repo: git.Repo) -> None:
     if git_diff == "":
         return
     patch_file = pathlib.Path(target_repo.working_dir) / "patch"
-    patch_file.write_text(git_diff)
+    with patch_file.open("w") as file:
+        # for some reason using 'git_diff' does not work (tested)
+        subprocess.check_call(["git", "diff"], stdout=file, cwd=source_repo.working_dir)
+
     target_repo.git.execute(["git", "apply", "--whitespace=fix", "patch"])
     patch_file.unlink()
 
