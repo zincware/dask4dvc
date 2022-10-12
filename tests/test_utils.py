@@ -76,3 +76,19 @@ def test_submit_to_dask():
         r = re.compile(r"^[a-zA-Z0-9]{8}_" + node)
         assert any(filter(r.match, results))
     # assert client.submit.assert_called_with(name="Node3")
+
+
+def test_update_gitignore(tmp_path):
+    file = tmp_path / ".gitignore"
+
+    dask4dvc.utils.update_gitignore(ignore=".dask4dvc/", gitignore=file)
+    assert ".dask4dvc/" == file.read_text()
+
+    dask4dvc.utils.update_gitignore(ignore=".dask4dvc/", gitignore=file)
+    assert ".dask4dvc/" == file.read_text()
+
+    with file.open("a") as f:
+        f.write("data.dat")
+
+    dask4dvc.utils.update_gitignore(ignore=".dask4dvc/", gitignore=file)
+    assert "data.dat" in file.read_text()

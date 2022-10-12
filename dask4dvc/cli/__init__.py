@@ -42,6 +42,7 @@ def repro(
     Run 'dvc repro' with parallel execution through Dask distributed.
     """
     log.debug("Running dvc repro")
+    dask4dvc.utils.update_gitignore(ignore=".dask4dvc/")
     # TODO If the files are not git tracked, they won't be in the git diff! so make
     #  sure all relevant files are git tracked
     with dask.distributed.Client(address) as client:

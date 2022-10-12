@@ -113,13 +113,12 @@ def prepare_dvc_workspace(
         The DVC cache is set to the cwd cache. # TODO what if the cache was moved
 
     """
-    # TODO run in single temporary directory which is git added to avoid crowding the CWD with potentially many Nodes?
     if cwd is None:
         cwd = pathlib.Path().cwd()
     if name is None:
-        tmp_dir = cwd / dask4dvc.utils.get_tmp_dir()
+        tmp_dir = cwd / ".dask4dvc" / dask4dvc.utils.get_tmp_dir()
     else:
-        tmp_dir = cwd / pathlib.Path(f"tmp_{name}")
+        tmp_dir = cwd / ".dask4dvc" / pathlib.Path(f"tmp_{name}")
 
     source_repo, target_repo = clone(cwd, tmp_dir)
     apply_git_diff(source_repo, target_repo)
