@@ -29,6 +29,9 @@ pre-commit = "^2.20.0"
 [tool.poetry.scripts]
 dask4dvc = 'dask4dvc.cli:app'
 
+[tool.poetry.group.dev.dependencies]
+zntrack = {git = "https://github.com/zincware/ZnTrack.git"}
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
