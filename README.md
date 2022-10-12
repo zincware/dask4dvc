@@ -15,4 +15,19 @@ Both commands will launch a Dask Server which can be accessed through `127.0.0.1
 Further more there is: 
 - ``dask4dvc clone <source> <target>`` to make a clone of a DVC repository with a shared cache.
 ## Custom Workers
-You can start a scheduler via `dask-scheduler` and then a worker (in the cwd of your project!) via `dask-worker tcp://127.0.0.1:8786` and use `dask4dvc repro --adress 127.0.0.1:8786`
+You can start a scheduler via `dask-scheduler` and then a worker (in the cwd of your project!) via `dask-worker tcp://127.0.0.1:8786` and use `dask4dvc repro --address 127.0.0.1:8786`
+
+### SLURM Cluster
+
+You can use `dask4dvc` easily with a slurm cluster.
+This requires a running dask scheduler:
+```python
+from dask_jobqueue import SLURMCluster
+
+cluster = SLURMCluster(cores=1, memory='1GB', scheduler_options={"port": 31415})
+# see https://jobqueue.dask.org/en/latest/generated/dask_jobqueue.SLURMCluster.html
+cluster.adapt() # maximum_jobs=5
+```
+
+with this setup you can then run `dask4dvc repro --address 127.0.0.1:31415`.
+You can choose any available port and can run the command on another machine / ip as well.

@@ -23,3 +23,17 @@ def wait_for_futures(futures: typing.Dict[str, Future]):
 def get_tmp_dir(uuid_length: int = 8) -> pathlib.Path:
     """Get a random path"""
     return pathlib.Path(f"tmp_{str(uuid.uuid4())[:uuid_length]}")
+
+
+def update_gitignore(
+    ignore: str, gitignore: typing.Union[str, pathlib.Path] = ".gitignore"
+):
+    """Add 'ignore' to the gitignore file, if not already there"""
+    gitignore = pathlib.Path(gitignore)
+    if gitignore.exists():
+        with gitignore.open("r") as f:
+            for line in f.readlines():
+                if ignore == line:
+                    return
+    with gitignore.open("a") as f:
+        f.write(ignore)

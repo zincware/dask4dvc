@@ -16,6 +16,7 @@ jupyterlab = "^3.4.4"
 bokeh = "^2.4.3"
 typer = "^0.6.1"
 gitpython = "^3.1.27"
+dask-jobqueue = "^0.8.1"
 
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
@@ -27,6 +28,9 @@ pre-commit = "^2.20.0"
 
 [tool.poetry.scripts]
 dask4dvc = 'dask4dvc.cli:app'
+
+[tool.poetry.group.dev.dependencies]
+zntrack = {git = "https://github.com/zincware/ZnTrack.git"}
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -1,13 +1,16 @@
+import pathlib
+
 import git
 import pytest
+
+FILE = pathlib.Path(__file__).resolve()
 
 
 @pytest.fixture()
 def dvc_repository(tmp_path) -> git.Repo:
-    repo_path = tmp_path / "main"
+    repo = git.Repo.init(tmp_path / "main", mkdir=True)
+    repo_path = pathlib.Path(repo.working_dir)
 
-    repo = git.Repo.init(repo_path)
-    repo.init()
     repo.git.execute(["dvc", "init"])
     repo.git.execute(
         [
@@ -27,3 +30,9 @@ def dvc_repository(tmp_path) -> git.Repo:
     repo.index.add(["dvc.yaml", ".dvcignore", "script"])
     repo.index.commit("Initial commit")
     return repo
+
+
+@pytest.fixture()
+def examples() -> pathlib.Path:
+    """Path to a File with simple test nodes"""
+    return FILE.parent / "examples.py"
