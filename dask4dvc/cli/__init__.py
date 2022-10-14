@@ -23,6 +23,9 @@ class Help:
         " None Dask will launch a new Server."
     )
     cleanup: str = "Remove the temporary directories"
+    parallel: str = (
+        "Split the DVC Graph into individual Nodes and run them in parallel if possible."
+    )
 
 
 @app.command()
@@ -45,6 +48,7 @@ def repro(
             " show unexpected behavior."
         ),
     ),
+    parallel: bool = typer.Option(True, help=Help.parallel),
 ):
     """Replicate 'dvc repro' command
 
@@ -54,23 +58,34 @@ def repro(
     dask4dvc.utils.update_gitignore(ignore=".dask4dvc/")
     # TODO If the files are not git tracked, they won't be in the git diff! so make
     #  sure all relevant files are git tracked
+
+    # TODO add something like force to be only applied to 'initial nodes' so all will be reproduced automatically.
     with dask.distributed.Client(address) as client:
         log.info("Dask server initialized")
-        output = _repro(client, cleanup=cleanup, repro_options=option)
+        if parallel:
+            output = _repro(client, cleanup=cleanup, repro_options=option)
 
-        dask4dvc.utils.wait_for_futures(output)
-        if not tmp:
-            log.info("Loading into workspace")
+            dask4dvc.utils.wait_for_futures(output)
+            if not tmp:
+                log.info("Loading into workspace")
+                result = client.submit(
+                    dask4dvc.dvc_handling.run_dvc_repro_in_cwd,
+                    node_name=None,
+                    deps=output,
+                    pure=False,
+                    options=option,
+                )
+                _ = (
+                    result.result()
+                )  # this should only run if all outputs are gathered successfully
+        else:
             result = client.submit(
                 dask4dvc.dvc_handling.run_dvc_repro_in_cwd,
                 node_name=None,
-                deps=output,
                 pure=False,
-                options=option
+                options=option,
             )
-            _ = (
-                result.result()
-            )  # this should only run if all outputs are gathered successfully
+            _ = result.result()
 
         if wait:
             _ = input("Press Enter to close the client")
