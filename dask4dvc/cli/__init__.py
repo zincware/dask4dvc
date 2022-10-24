@@ -26,6 +26,7 @@ class Help:
     parallel: str = (
         "Split the DVC Graph into individual Nodes and run them in parallel if possible."
     )
+    wait: str ="Ask before stopping the client"
 
 
 @app.command()
@@ -34,7 +35,7 @@ def repro(
         False,
         help="Only run experiment in temporary directory and don't load into workspace",
     ),
-    wait: bool = typer.Option(True, help="Ask before stopping the client"),
+    wait: bool = typer.Option(True, help=Help.wait),
     address: str = typer.Option(
         None,
         help=Help.address,
@@ -92,10 +93,10 @@ def repro(
 
 
 def _repro(
-    client: dask.distributed.Client,
-    cwd=None,
-    cleanup: bool = True,
-    repro_options: list = None,
+        client: dask.distributed.Client,
+        cwd=None,
+        cleanup: bool = True,
+        repro_options: list = None,
 ) -> dask4dvc.typehints.FUTURE_DICT:
     """replicate dvc repro with a given client"""
     # TODO what if the CWD is not where the repo is. E.g. if the worker is launchend in a different directory?
@@ -120,6 +121,8 @@ def run(
         help=Help.address,
     ),
     cleanup: bool = typer.Option(True, help=Help.cleanup),
+    wait: bool = typer.Option(True, help=Help.wait),
+    load: bool = typer.Option(True, help="Load experiments from cache into 'dvc exp show' ")
 ) -> None:
     """Replicate 'dvc exp run --run-all'
 
@@ -139,16 +142,14 @@ def run(
             if cleanup:
                 for tmp_dir in tmp_dirs.values():
                     shutil.rmtree(tmp_dir)
-                answer = input(
-                    "Press Enter to load experiments and close dask client (yes/no) "
-                )
-
-        if answer == "yes":
+        if load:
             for exp_name in tmp_dirs:
                 log.info(f"Loading experiment {exp_name}")
                 # TODO I think this should probably be done on a client submit as well
                 # TODO you can use dvc status to check if it only has to be loaded?
                 dask4dvc.dvc_handling.run_single_exp(exp_name)
+        if wait:
+            _ = input("Press Enter to close the client")
         return
     raise ValueError("reproducing single experiments is currently not possible")
     # log.warning(f"Running experiment {name}")
@@ -163,32 +164,33 @@ def run(
 
 @app.command()
 def clone(
-    source: str = typer.Argument(
-        ..., help="Repository to clone from", show_default=False
-    ),
-    target: str = typer.Argument(..., help="target directory / path", show_default=False),
-    branch: bool = typer.Option(
-        False, "--branch", help="Create a new branch after cloning"
-    ),
-    branch_name: str = typer.Option(
-        None,
-        help=(
-            "The name of the new branch. If using `--branch` without providing a branch"
-            " name the 'target' name is used as branch name. This will imply usage"
-            " `--branch`"
+        source: str = typer.Argument(
+            ..., help="Repository to clone from", show_default=False
         ),
-        show_default=False,
-    ),
-    checkout: bool = typer.Option(
-        False, "--checkout", help="Run dvc checkout after cloning"
-    ),
-    apply_diff: bool = typer.Option(
-        False,
-        "--apply-diff",
-        help=(
-            "Apply a patch git diff <src> after cloning to copy all changed files as well"
+        target: str = typer.Argument(..., help="target directory / path",
+                                     show_default=False),
+        branch: bool = typer.Option(
+            False, "--branch", help="Create a new branch after cloning"
         ),
-    ),
+        branch_name: str = typer.Option(
+            None,
+            help=(
+                    "The name of the new branch. If using `--branch` without providing a branch"
+                    " name the 'target' name is used as branch name. This will imply usage"
+                    " `--branch`"
+            ),
+            show_default=False,
+        ),
+        checkout: bool = typer.Option(
+            False, "--checkout", help="Run dvc checkout after cloning"
+        ),
+        apply_diff: bool = typer.Option(
+            False,
+            "--apply-diff",
+            help=(
+                    "Apply a patch git diff <src> after cloning to copy all changed files as well"
+            ),
+        ),
 ) -> None:
     """Make a copy the source DVC repository at the target destination
 
@@ -226,9 +228,9 @@ def version_callback(value: bool):
 
 @app.callback()
 def main(
-    version: bool = typer.Option(
-        None, "--version", callback=version_callback, is_eager=True
-    ),
+        version: bool = typer.Option(
+            None, "--version", callback=version_callback, is_eager=True
+        ),
 ):
     """Dask4DVC
 

@@ -1,4 +1,5 @@
 """Everything related to DVC"""
+import logging
 import json
 import pathlib
 import shutil
@@ -10,6 +11,8 @@ import networkx as nx
 import pydot
 
 import dask4dvc.utils
+
+log = logging.getLogger(__name__)
 
 
 def get_dvc_graph(cwd=None) -> nx.DiGraph:
@@ -34,6 +37,9 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, options=None, deps=None) -> N
         Name of the stage to be run
     cwd: str
         working directory
+    options: list, default = None
+        A list of additional 'dvc repro' arguments such as '--force' that will be
+        passed to the subprocess call.
 
     deps: list[dask.distributed.Future]|Future
         Any dependencies for the dask graph
@@ -83,8 +89,10 @@ def clone(source: pathlib.Path, target: pathlib.Path) -> (git.Repo, git.Repo):
     """
 
     # Clone the repository
+    logging.warning(f"Cloning '{source.resolve()}' into '{target.resolve()}'")
+    subprocess.check_call(["git", "clone", source.resolve(), target.resolve()])
     source_repo = git.Repo(source.resolve())
-    target_repo = source_repo.clone(target.resolve())
+    target_repo = git.Repo(target.resolve())
 
     # Set the cache directory to source
     target_repo.git.execute(
@@ -124,6 +132,8 @@ def prepare_dvc_workspace(
 
     source_repo, target_repo = clone(cwd, tmp_dir)
     apply_git_diff(source_repo, target_repo)
+
+    dask4dvc.utils.update_gitignore(gitignore=tmp_dir / ".gitignore", ignore=".dask4dvc/")
 
     if commit:
         target_repo.index.add(".")
@@ -185,17 +195,20 @@ def load_all_exp_to_tmp_dir() -> typing.Dict[str, pathlib.Path]:
     queued_exp = get_queued_exp_names()
     tmp_dirs = {}
     for exp_name in queued_exp:
+        log.debug(f"Preparing directory for experiment '{exp_name}'")
         load_exp_into_workspace(exp_name)
         tmp_dirs[exp_name] = prepare_dvc_workspace(
             name=exp_name[:8], commit=True  # limit exp name to 8 digits
         )
+
+    log.debug(f"Experiments: {tmp_dirs}")
 
     return tmp_dirs
 
 
 def load_exp_into_workspace(name: str):
     """Load the given experiment into the workspace"""
-    subprocess.check_call(["dvc", "exp", "apply", name])
+    subprocess.run(["dvc", "exp", "apply", name], check=True, capture_output=True)
 
 
 def run_all_exp() -> None:
@@ -205,6 +218,7 @@ def run_all_exp() -> None:
 
 def run_single_exp(queue_id: str) -> None:
     """Run a single experiment. This will modify your workspace"""
+    # TODO use 'dvc exp run --name <name>' to keep the names
     # see https://github.com/iterative/dvc/issues/8121
     subprocess.check_call(["dvc", "exp", "apply", queue_id])
     subprocess.check_call(["dvc", "exp", "run"])

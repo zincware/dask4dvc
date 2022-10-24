@@ -1,3 +1,5 @@
+"""Integration tests for dask4dvc package"""
+
 import os
 import pathlib
 import shutil
@@ -97,4 +99,49 @@ def test_clone_and_patch(tmp_path, examples):
     os.chdir(main)
 
     result = runner.invoke(app, ["repro", "--no-wait"])
+    assert result.exit_code == 0
+
+
+def test_repro(tmp_path, examples):
+    main = tmp_path / "main"
+    main_repo = git.Repo.init(main)
+    main_repo.git.execute(["dvc", "init"])
+    shutil.copy(examples, main)
+    main_repo.git.execute(
+        [
+            "python",
+            "-c",
+            "from examples import InputToOutput; InputToOutput(inputs=1).write_graph()",
+        ]
+    )
+    main_repo.git.execute(["git", "add", "."])
+    main_repo.index.commit("Initial Commit")
+
+    os.chdir(main)
+    result = runner.invoke(app, ["repro", "--no-wait"])
+    assert result.exit_code == 0
+
+
+def test_run(tmp_path, examples):
+    main = tmp_path / "main"
+    main_repo = git.Repo.init(main)
+    main_repo.git.execute(["dvc", "init"])
+    shutil.copy(examples, main)
+    main_repo.git.execute(
+        [
+            "python",
+            "-c",
+            "from examples import InputToOutput; InputToOutput(inputs=1).write_graph()",
+        ]
+    )
+    main_repo.git.execute(["git", "add", "."])
+    main_repo.git.execute(["dvc", "repro"]) # need to run it at least once
+    main_repo.index.commit("Initial Commit")
+    for inputs in range(5):
+        main_repo.git.execute(
+            ["dvc", "exp", "run", "-S", f"params.yaml:InputToOutput.inputs={inputs}",
+             "--queue"])
+
+    os.chdir(main)
+    result = runner.invoke(app, ["run", "--no-wait"])
     assert result.exit_code == 0

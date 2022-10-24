@@ -60,7 +60,7 @@ def test_apply_git_diff_real(dvc_repository):
 
     dvc_repository.index.add(["dvc.lock"])
     dvc_repository.index.commit("dvc repro")
-    (tmp_path / "main" / "script").write_text("Change Depedency")
+    (tmp_path / "main" / "script").write_text("Change Dependency")
     dvc_repository.git.execute(["dvc", "repro"])
     source_repo, target_repo = dask4dvc.dvc_handling.clone(
         tmp_path / "main", tmp_path / "clone"
@@ -68,4 +68,4 @@ def test_apply_git_diff_real(dvc_repository):
 
     dask4dvc.dvc_handling.apply_git_diff(source_repo, target_repo)
 
-    assert (tmp_path / "clone" / "script").read_text() == "Change Depedency"
+    assert (tmp_path / "clone" / "script").read_text() == "Change Dependency"
