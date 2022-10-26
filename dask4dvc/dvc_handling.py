@@ -29,7 +29,7 @@ def get_dvc_graph(cwd=None) -> nx.DiGraph:
     return nx.DiGraph(nx.nx_pydot.from_pydot(dot_graph))
 
 
-def run_dvc_repro_in_cwd(node_name: str, cwd=None, options=None, deps=None) -> None:
+def run_dvc_repro_in_cwd(node_name: str, cwd=None, options=None, checkout: bool = False, deps=None) -> None:
     """Run the dvc repro cmd for a selected stage in a given cwd
 
     Parameters
@@ -44,12 +44,16 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, options=None, deps=None) -> N
 
     deps: list[dask.distributed.Future]|Future
         Any dependencies for the dask graph
+    checkout: bool, default = False
+        Run 'dvc checkout' before running 'dvc repro'
 
     Raises
     -------
     subprocess.CalledProcessError: if dvc cmd fails
 
     """
+    if checkout:
+        subprocess.check_call(["dvc", "checkout"], cwd=cwd)
     if options is None:
         options = []
     if node_name is not None:

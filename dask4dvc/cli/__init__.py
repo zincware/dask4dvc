@@ -125,10 +125,19 @@ def run(
     load: bool = typer.Option(
         True, help="Load experiments from cache into 'dvc exp show' "
     ),
+    option: typing.List[str] = typer.Option(
+        None,
+        help=(
+            "Additional options to pass to 'dvc repro'. E.g. '--option=--force"
+            " --option=--downstream'. Notice that some options like '--force' might"
+            " show unexpected behavior."
+        ),
+    ),
 ) -> None:
     working_directory = dask4dvc.utils.make_dask4dvc_working_directory()
     # the directory where all experiments are executed
     cwd = pathlib.Path.cwd()
+
 
     queued_exp = dask4dvc.dvc_handling.get_queued_exp_names()
 
@@ -157,7 +166,8 @@ def run(
                     node_name=None,
                     pure=False,
                     cwd=tmp_dir,
-                    # options=option,
+                    checkout=True,
+                    options=option,
                 )
 
         dask4dvc.utils.wait_for_futures(output)
