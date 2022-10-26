@@ -145,6 +145,8 @@ def run(
     for exp_name in queued_exp:
         log.debug(f"Preparing directory for experiment '{exp_name}'")
         exp_dir_name = working_directory / exp_name[:8]
+        if exp_dir_name.exists():
+            shutil.rmtree(exp_dir_name)
         dask4dvc.dvc_handling.load_exp_into_workspace(exp_name, cwd=cwd.as_posix())
         source_repo, target_repo = dask4dvc.dvc_handling.clone(cwd, exp_dir_name)
         dask4dvc.dvc_handling.apply_git_diff(source_repo, target_repo, commit=True)
