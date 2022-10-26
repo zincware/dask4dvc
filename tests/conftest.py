@@ -31,6 +31,7 @@ def dvc_repository(tmp_path) -> git.Repo:
     repo.index.commit("Initial commit")
     return repo
 
+
 @pytest.fixture()
 def examples() -> pathlib.Path:
     """Path to a File with simple test nodes"""

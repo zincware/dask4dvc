@@ -1,7 +1,8 @@
 """Everything related to DVC"""
-import logging
 import json
+import logging
 import pathlib
+import re
 import shutil
 import subprocess
 import typing
@@ -57,7 +58,9 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, options=None, deps=None) -> N
         subprocess.check_call(["dvc", "repro"] + options, cwd=cwd)
 
 
-def apply_git_diff(source_repo: git.Repo, target_repo: git.Repo) -> None:
+def apply_git_diff(
+    source_repo: git.Repo, target_repo: git.Repo, commit: bool = False
+) -> None:
     """Apply the uncommitted changed in source repo to target repo"""
     git_diff = source_repo.git.diff("HEAD")
     if git_diff == "":
@@ -69,6 +72,10 @@ def apply_git_diff(source_repo: git.Repo, target_repo: git.Repo) -> None:
 
     target_repo.git.execute(["git", "apply", "--whitespace=fix", "patch"])
     patch_file.unlink()
+
+    if commit:
+        target_repo.git.execute(["git", "add", "."])
+        target_repo.index.commit("apply patch")
 
 
 def clone(source: pathlib.Path, target: pathlib.Path) -> (git.Repo, git.Repo):
@@ -206,9 +213,11 @@ def load_all_exp_to_tmp_dir() -> typing.Dict[str, pathlib.Path]:
     return tmp_dirs
 
 
-def load_exp_into_workspace(name: str):
+def load_exp_into_workspace(name: str, cwd: str = None):
     """Load the given experiment into the workspace"""
-    subprocess.run(["dvc", "exp", "apply", name], check=True, capture_output=True)
+    subprocess.run(
+        ["dvc", "exp", "apply", name], check=True, capture_output=True, cwd=cwd
+    )
 
 
 def run_all_exp() -> None:
@@ -216,36 +225,48 @@ def run_all_exp() -> None:
     subprocess.check_call(["dvc", "exp", "run", "--run-all", "--jobs", "8"])
 
 
-def run_single_exp(queue_id: str) -> None:
+def run_single_exp(queue_id: str, name: str = None) -> None:
     """Run a single experiment. This will modify your workspace"""
     # TODO use 'dvc exp run --name <name>' to keep the names
     # see https://github.com/iterative/dvc/issues/8121
     subprocess.check_call(["dvc", "exp", "apply", queue_id])
-    subprocess.check_call(["dvc", "exp", "run"])
     subprocess.check_call(["dvc", "queue", "remove", queue_id])
+
+    if name is None:
+        subprocess.check_call(["dvc", "exp", "run"])
+    else:
+        subprocess.check_call(["dvc", "exp", "run", "--name", name])
 
 
 def load_exp_to_dict() -> dict:
     """Convert 'dvc exp show' to a python dict"""
-    json_dict = subprocess.run(
+    subprocess_out = subprocess.run(
         ["dvc", "exp", "show", "--json"], capture_output=True, check=True
     )
 
-    return json.loads(json_dict.stdout.decode("utf-8"))
+    json_str = subprocess_out.stdout.decode("utf-8")
+    # we match everything before the last }}}} closes the json string and is
+    # followed by some unwanted characters
+    json_str = re.findall(r".*\}\}\}\}", json_str)[0]
+
+    return json.loads(json_str)
 
 
-def get_queued_exp_names() -> list:
-    """Get all currently queued experiments (names)"""
+def get_queued_exp_names() -> dict:
+    """Get all currently queued experiments (names)
+
+    Try to get the name that was used to queue, otherwise use the hash
+    """
     exp_dict = load_exp_to_dict()
     # I don't understand why they separate this into workspace and some hash?
     base_key = [x for x in exp_dict if x != "workspace"][0]
 
-    exp_names = []
+    exp_names = {}
     for exp_name in exp_dict[base_key]:
         if exp_name == "baseline":
             continue
 
         if exp_dict[base_key][exp_name]["data"]["queued"]:
-            exp_names.append(exp_name)
+            exp_names[exp_name] = exp_dict[base_key][exp_name]["data"].get("name")
 
     return exp_names

@@ -122,7 +122,8 @@ def test_repro(tmp_path, examples):
     assert result.exit_code == 0
 
 
-def test_run(tmp_path, examples):
+@pytest.mark.parametrize("parallel", (True, False))
+def test_run(tmp_path, examples, parallel):
     main = tmp_path / "main"
     main_repo = git.Repo.init(main)
     main_repo.git.execute(["dvc", "init"])
@@ -134,14 +135,22 @@ def test_run(tmp_path, examples):
             "from examples import InputToOutput; InputToOutput(inputs=1).write_graph()",
         ]
     )
+    subprocess.run(["dvc", "repro"], cwd=main_repo.working_dir, check=True)
     main_repo.git.execute(["git", "add", "."])
-    main_repo.git.execute(["dvc", "repro"]) # need to run it at least once
     main_repo.index.commit("Initial Commit")
     for inputs in range(5):
         main_repo.git.execute(
-            ["dvc", "exp", "run", "-S", f"params.yaml:InputToOutput.inputs={inputs}",
-             "--queue"])
+            [
+                "dvc",
+                "exp",
+                "run",
+                "-S",
+                f"params.yaml:InputToOutput.inputs={inputs}",
+                "--queue",
+            ]
+        )
 
     os.chdir(main)
-    result = runner.invoke(app, ["run", "--no-wait"])
+    script = ["run", "--no-wait", "--no-parallel"] if parallel else ["run", "--no-wait"]
+    result = runner.invoke(app, script)
     assert result.exit_code == 0

@@ -26,7 +26,7 @@ class Help:
     parallel: str = (
         "Split the DVC Graph into individual Nodes and run them in parallel if possible."
     )
-    wait: str ="Ask before stopping the client"
+    wait: str = "Ask before stopping the client"
 
 
 @app.command()
@@ -93,10 +93,10 @@ def repro(
 
 
 def _repro(
-        client: dask.distributed.Client,
-        cwd=None,
-        cleanup: bool = True,
-        repro_options: list = None,
+    client: dask.distributed.Client,
+    cwd=None,
+    cleanup: bool = True,
+    repro_options: list = None,
 ) -> dask4dvc.typehints.FUTURE_DICT:
     """replicate dvc repro with a given client"""
     # TODO what if the CWD is not where the repo is. E.g. if the worker is launchend in a different directory?
@@ -115,82 +115,141 @@ def _repro(
 
 @app.command()
 def run(
-    name: str = None,
     address: str = typer.Option(
         None,
         help=Help.address,
     ),
     cleanup: bool = typer.Option(True, help=Help.cleanup),
+    parallel: bool = typer.Option(True, help=Help.parallel),
     wait: bool = typer.Option(True, help=Help.wait),
-    load: bool = typer.Option(True, help="Load experiments from cache into 'dvc exp show' ")
+    load: bool = typer.Option(
+        True, help="Load experiments from cache into 'dvc exp show' "
+    ),
 ) -> None:
-    """Replicate 'dvc exp run --run-all'
+    working_directory = dask4dvc.utils.make_dask4dvc_working_directory()
+    # the directory where all experiments are executed
+    cwd = pathlib.Path.cwd()
 
-    Run 'dvc exp run --run-all' with full parallel execution using Dask distributed.
-    """
-    if name is None:
-        tmp_dirs = dask4dvc.dvc_handling.load_all_exp_to_tmp_dir()
+    queued_exp = dask4dvc.dvc_handling.get_queued_exp_names()
 
-        with dask.distributed.Client(address) as client:
-            log.info("Starting dask server")
-            output = {}
-            for tmp_dir in tmp_dirs.values():
+    tmp_dirs = {}
+    for exp_name in queued_exp:
+        log.debug(f"Preparing directory for experiment '{exp_name}'")
+        exp_dir_name = working_directory / exp_name[:8]
+        dask4dvc.dvc_handling.load_exp_into_workspace(exp_name, cwd=cwd.as_posix())
+        source_repo, target_repo = dask4dvc.dvc_handling.clone(cwd, exp_dir_name)
+        dask4dvc.dvc_handling.apply_git_diff(source_repo, target_repo, commit=True)
+
+        tmp_dirs[exp_name] = exp_dir_name
+
+    log.debug(f"Experiments: {tmp_dirs}")
+
+    with dask.distributed.Client(address) as client:
+        log.info("Starting dask server")
+        output = {}
+        for tmp_dir in tmp_dirs.values():
+            if parallel:
+                # raise ValueError("Parallel currently not supported")
                 output.update(_repro(client, cwd=tmp_dir, cleanup=cleanup))
+            else:
+                output[tmp_dir] = client.submit(
+                    dask4dvc.dvc_handling.run_dvc_repro_in_cwd,
+                    node_name=None,
+                    pure=False,
+                    cwd=tmp_dir,
+                    # options=option,
+                )
 
-            dask4dvc.utils.wait_for_futures(output)
-            # clean up exp temp tmp_dirs
-            if cleanup:
-                for tmp_dir in tmp_dirs.values():
-                    shutil.rmtree(tmp_dir)
+        dask4dvc.utils.wait_for_futures(output)
         if load:
-            for exp_name in tmp_dirs:
+            log.info("Loading Experiments to be available via 'dvc exp show'")
+            for exp_id, exp_name in queued_exp.items():
                 log.info(f"Loading experiment {exp_name}")
                 # TODO I think this should probably be done on a client submit as well
                 # TODO you can use dvc status to check if it only has to be loaded?
-                dask4dvc.dvc_handling.run_single_exp(exp_name)
+                dask4dvc.dvc_handling.run_single_exp(exp_id, name=exp_name)
         if wait:
             _ = input("Press Enter to close the client")
         return
-    raise ValueError("reproducing single experiments is currently not possible")
-    # log.warning(f"Running experiment {name}")
-    # TODO consider stashing the current workspace, then load the exp and run it in
-    #  tmp_dir then load the stash again to not modify the workspace.
-    # dask4dvc.dvc_handling.load_exp_into_workspace(name)
-    # repro(tmp=True)
-    # after the experiment finished we can load it into the workspace from runcache
-    # this is currently not supported, see https://github.com/iterative/dvc/issues/8121
-    # dask4dvc.dvc_handling.run_exp(name)
+
+
+# @app.command()
+# def run(
+#     name: str = None,
+#     address: str = typer.Option(
+#         None,
+#         help=Help.address,
+#     ),
+#     cleanup: bool = typer.Option(True, help=Help.cleanup),
+#     wait: bool = typer.Option(True, help=Help.wait),
+#     load: bool = typer.Option(True, help="Load experiments from cache into 'dvc exp show' ")
+# ) -> None:
+#     """Replicate 'dvc exp run --run-all'
+#
+#     Run 'dvc exp run --run-all' with full parallel execution using Dask distributed.
+#     """
+#     if name is None:
+#         tmp_dirs = dask4dvc.dvc_handling.load_all_exp_to_tmp_dir()
+
+#         with dask.distributed.Client(address) as client:
+#             log.info("Starting dask server")
+#             output = {}
+#             for tmp_dir in tmp_dirs.values():
+#                 output.update(_repro(client, cwd=tmp_dir, cleanup=cleanup))
+#
+#             dask4dvc.utils.wait_for_futures(output)
+#             # clean up exp temp tmp_dirs
+#             if cleanup:
+#                 for tmp_dir in tmp_dirs.values():
+#                     shutil.rmtree(tmp_dir)
+#         if load:
+#             for exp_name in tmp_dirs:
+#                 log.info(f"Loading experiment {exp_name}")
+#                 # TODO I think this should probably be done on a client submit as well
+#                 # TODO you can use dvc status to check if it only has to be loaded?
+#                 dask4dvc.dvc_handling.run_single_exp(exp_name)
+#         if wait:
+#             _ = input("Press Enter to close the client")
+#         return
+#     raise ValueError("reproducing single experiments is currently not possible")
+#     # log.warning(f"Running experiment {name}")
+#     # TODO consider stashing the current workspace, then load the exp and run it in
+#     #  tmp_dir then load the stash again to not modify the workspace.
+#     # dask4dvc.dvc_handling.load_exp_into_workspace(name)
+#     # repro(tmp=True)
+#     # after the experiment finished we can load it into the workspace from runcache
+#     # this is currently not supported, see https://github.com/iterative/dvc/issues/8121
+#     # dask4dvc.dvc_handling.run_exp(name)
 
 
 @app.command()
 def clone(
-        source: str = typer.Argument(
-            ..., help="Repository to clone from", show_default=False
+    source: str = typer.Argument(
+        ..., help="Repository to clone from", show_default=False
+    ),
+    target: str = typer.Argument(..., help="target directory / path", show_default=False),
+    branch: bool = typer.Option(
+        False, "--branch", help="Create a new branch after cloning"
+    ),
+    branch_name: str = typer.Option(
+        None,
+        help=(
+            "The name of the new branch. If using `--branch` without providing a branch"
+            " name the 'target' name is used as branch name. This will imply usage"
+            " `--branch`"
         ),
-        target: str = typer.Argument(..., help="target directory / path",
-                                     show_default=False),
-        branch: bool = typer.Option(
-            False, "--branch", help="Create a new branch after cloning"
+        show_default=False,
+    ),
+    checkout: bool = typer.Option(
+        False, "--checkout", help="Run dvc checkout after cloning"
+    ),
+    apply_diff: bool = typer.Option(
+        False,
+        "--apply-diff",
+        help=(
+            "Apply a patch git diff <src> after cloning to copy all changed files as well"
         ),
-        branch_name: str = typer.Option(
-            None,
-            help=(
-                    "The name of the new branch. If using `--branch` without providing a branch"
-                    " name the 'target' name is used as branch name. This will imply usage"
-                    " `--branch`"
-            ),
-            show_default=False,
-        ),
-        checkout: bool = typer.Option(
-            False, "--checkout", help="Run dvc checkout after cloning"
-        ),
-        apply_diff: bool = typer.Option(
-            False,
-            "--apply-diff",
-            help=(
-                    "Apply a patch git diff <src> after cloning to copy all changed files as well"
-            ),
-        ),
+    ),
 ) -> None:
     """Make a copy the source DVC repository at the target destination
 
@@ -228,9 +287,9 @@ def version_callback(value: bool):
 
 @app.callback()
 def main(
-        version: bool = typer.Option(
-            None, "--version", callback=version_callback, is_eager=True
-        ),
+    version: bool = typer.Option(
+        None, "--version", callback=version_callback, is_eager=True
+    ),
 ):
     """Dask4DVC
 

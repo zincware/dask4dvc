@@ -33,7 +33,16 @@ def update_gitignore(
     if gitignore.exists():
         with gitignore.open("r") as f:
             for line in f.readlines():
-                if ignore == line:
+                if line == ignore:
                     return
     with gitignore.open("a") as f:
         f.write(ignore)
+
+
+def make_dask4dvc_working_directory() -> pathlib.Path:
+    """Create a '.dask4dvc' working directory"""
+    working_dir = pathlib.Path(".dask4dvc")
+    working_dir.mkdir(exist_ok=True)
+
+    update_gitignore(ignore=".dask4dvc/")
+    return working_dir
