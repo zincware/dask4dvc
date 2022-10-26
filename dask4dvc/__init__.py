@@ -15,7 +15,7 @@ log.setLevel(logging.DEBUG)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
 
 channel = logging.StreamHandler(sys.stdout)
-channel.setLevel(logging.DEBUG)
+channel.setLevel(logging.INFO)
 channel.setFormatter(formatter)
 
 log.addHandler(channel)

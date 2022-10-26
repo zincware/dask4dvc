@@ -176,7 +176,7 @@ def run(
         if load:
             log.info("Loading Experiments to be available via 'dvc exp show'")
             for exp_id, exp_name in queued_exp.items():
-                log.info(f"Loading experiment {exp_name}")
+                log.debug(f"Loading experiment {exp_name}")
                 # TODO I think this should probably be done on a client submit as well
                 # TODO you can use dvc status to check if it only has to be loaded?
                 dask4dvc.dvc_handling.run_single_exp(exp_id, name=exp_name)
