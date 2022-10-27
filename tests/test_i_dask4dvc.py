@@ -102,7 +102,8 @@ def test_clone_and_patch(tmp_path, examples):
     assert result.exit_code == 0
 
 
-def test_repro(tmp_path, examples):
+@pytest.mark.parametrize("parallel", (True, False))
+def test_repro(tmp_path, examples, parallel):
     main = tmp_path / "main"
     main_repo = git.Repo.init(main)
     main_repo.git.execute(["dvc", "init"])
@@ -118,7 +119,8 @@ def test_repro(tmp_path, examples):
     main_repo.index.commit("Initial Commit")
 
     os.chdir(main)
-    result = runner.invoke(app, ["repro", "--no-wait"])
+    script = ["repro", "--no-parallel"] if parallel else ["repro"]
+    result = runner.invoke(app, script)
     assert result.exit_code == 0
 
 
@@ -151,6 +153,38 @@ def test_run(tmp_path, examples, parallel):
         )
 
     os.chdir(main)
-    script = ["run", "--no-wait", "--no-parallel"] if parallel else ["run", "--no-wait"]
+    script = ["run", "--no-parallel"] if parallel else ["run"]
     result = runner.invoke(app, script)
+    assert result.exit_code == 0
+
+
+def test_run_all(tmp_path, examples):
+    main = tmp_path / "main"
+    main_repo = git.Repo.init(main)
+    main_repo.git.execute(["dvc", "init"])
+    shutil.copy(examples, main)
+    main_repo.git.execute(
+        [
+            "python",
+            "-c",
+            "from examples import InputToOutput; InputToOutput(inputs=1).write_graph()",
+        ]
+    )
+    subprocess.run(["dvc", "repro"], cwd=main_repo.working_dir, check=True)
+    main_repo.git.execute(["git", "add", "."])
+    main_repo.index.commit("Initial Commit")
+    for inputs in range(5):
+        main_repo.git.execute(
+            [
+                "dvc",
+                "exp",
+                "run",
+                "-S",
+                f"params.yaml:InputToOutput.inputs={inputs}",
+                "--queue",
+            ]
+        )
+
+    os.chdir(main)
+    result = runner.invoke(app, ["run-all", "--jobs", 5])
     assert result.exit_code == 0

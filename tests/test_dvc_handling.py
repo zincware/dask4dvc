@@ -69,3 +69,27 @@ def test_apply_git_diff_real(dvc_repository):
     dask4dvc.dvc_handling.apply_git_diff(source_repo, target_repo)
 
     assert (tmp_path / "clone" / "script").read_text() == "Change Dependency"
+
+
+def test_load_exp_to_dict(dvc_repository):
+    dvc_repository.git.execute(["dvc", "exp", "run", "--queue"])
+
+    output_dict = dask4dvc.dvc_handling.get_queued_exp_names(
+        cwd=dvc_repository.working_dir
+    )
+
+    assert len(output_dict) == 1
+    assert next(iter(output_dict.values())) is None
+
+
+def test_load_exp_to_dict_names(dvc_repository):
+    for idx in range(5):
+        dvc_repository.git.execute(
+            ["dvc", "exp", "run", "--name", f"test_{idx}", "--queue"]
+        )
+
+    assert set(
+        dask4dvc.dvc_handling.get_queued_exp_names(
+            cwd=dvc_repository.working_dir
+        ).values()
+    ) == {f"test_{idx}" for idx in range(5)}

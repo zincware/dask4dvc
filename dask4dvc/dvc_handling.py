@@ -29,7 +29,9 @@ def get_dvc_graph(cwd=None) -> nx.DiGraph:
     return nx.DiGraph(nx.nx_pydot.from_pydot(dot_graph))
 
 
-def run_dvc_repro_in_cwd(node_name: str, cwd=None, options=None, checkout: bool = False, deps=None) -> None:
+def run_dvc_repro_in_cwd(
+    node_name: str = None, cwd=None, options=None, checkout: bool = False, deps=None
+) -> None:
     """Run the dvc repro cmd for a selected stage in a given cwd
 
     Parameters
@@ -60,6 +62,13 @@ def run_dvc_repro_in_cwd(node_name: str, cwd=None, options=None, checkout: bool 
         subprocess.check_call(["dvc", "repro", node_name] + options, cwd=cwd)
     else:
         subprocess.check_call(["dvc", "repro"] + options, cwd=cwd)
+
+
+def run_all(n_jobs: int):
+    """Run 'dvc exp run --run-all' to load experiments"""
+    # TODO the number of n_jobs can probably be optimized for n_exp >> 10
+    subprocess.check_call(["dvc", "queue", "start", "--jobs", n_jobs])
+    subprocess.check_call(["dvc", "exp", "run", "--run-all"])
 
 
 def apply_git_diff(
@@ -224,28 +233,23 @@ def load_exp_into_workspace(name: str, cwd: str = None):
     )
 
 
-def run_all_exp() -> None:
-    # TODO because this should never actually compute something we can use arbitrary cores
-    subprocess.check_call(["dvc", "exp", "run", "--run-all", "--jobs", "8"])
+# def run_single_exp(queue_id: str, name: str = None) -> None:
+#     """Run a single experiment. This will modify your workspace"""
+#     # TODO use 'dvc exp run --name <name>' to keep the names
+#     # see https://github.com/iterative/dvc/issues/8121
+#     subprocess.check_call(["dvc", "exp", "apply", queue_id])
+#     subprocess.check_call(["dvc", "queue", "remove", queue_id])
+#
+#     if name is None:
+#         subprocess.check_call(["dvc", "exp", "run"])
+#     else:
+#         subprocess.check_call(["dvc", "exp", "run", "--name", name])
 
 
-def run_single_exp(queue_id: str, name: str = None) -> None:
-    """Run a single experiment. This will modify your workspace"""
-    # TODO use 'dvc exp run --name <name>' to keep the names
-    # see https://github.com/iterative/dvc/issues/8121
-    subprocess.check_call(["dvc", "exp", "apply", queue_id])
-    subprocess.check_call(["dvc", "queue", "remove", queue_id])
-
-    if name is None:
-        subprocess.check_call(["dvc", "exp", "run"])
-    else:
-        subprocess.check_call(["dvc", "exp", "run", "--name", name])
-
-
-def load_exp_to_dict() -> dict:
+def load_exp_to_dict(cwd: str = None) -> dict:
     """Convert 'dvc exp show' to a python dict"""
     subprocess_out = subprocess.run(
-        ["dvc", "exp", "show", "--json"], capture_output=True, check=True
+        ["dvc", "exp", "show", "--json"], capture_output=True, check=True, cwd=cwd
     )
 
     json_str = subprocess_out.stdout.decode("utf-8")
@@ -256,12 +260,12 @@ def load_exp_to_dict() -> dict:
     return json.loads(json_str)
 
 
-def get_queued_exp_names() -> dict:
+def get_queued_exp_names(cwd: str = None) -> dict:
     """Get all currently queued experiments (names)
 
     Try to get the name that was used to queue, otherwise use the hash
     """
-    exp_dict = load_exp_to_dict()
+    exp_dict = load_exp_to_dict(cwd=cwd)
     # I don't understand why they separate this into workspace and some hash?
     base_key = [x for x in exp_dict if x != "workspace"][0]
 
@@ -269,8 +273,15 @@ def get_queued_exp_names() -> dict:
     for exp_name in exp_dict[base_key]:
         if exp_name == "baseline":
             continue
-
-        if exp_dict[base_key][exp_name]["data"]["queued"]:
-            exp_names[exp_name] = exp_dict[base_key][exp_name]["data"].get("name")
+        if "queued" in exp_dict[base_key][exp_name]["data"]:
+            if exp_dict[base_key][exp_name]["data"]["queued"]:
+                exp_names[exp_name] = exp_dict[base_key][exp_name]["data"].get("name")
+        elif "status" in exp_dict[base_key][exp_name]["data"]:
+            if exp_dict[base_key][exp_name]["data"]["status"] == "Queued":
+                exp_names[exp_name] = exp_dict[base_key][exp_name]["data"].get("name")
+        else:
+            raise KeyError(
+                f"Could not find information about queued stages for {exp_name}"
+            )
 
     return exp_names
