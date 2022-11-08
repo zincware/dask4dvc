@@ -47,7 +47,8 @@ def run_dvc_repro_in_cwd(
     deps: list[dask.distributed.Future]|Future
         Any dependencies for the dask graph
     checkout: bool, default = False
-        Run 'dvc checkout' before running 'dvc repro'
+        Run 'dvc checkout' before running 'dvc repro'. This might be required
+        when running code that depends on a specific file in the cache.
 
     Raises
     -------
@@ -55,7 +56,7 @@ def run_dvc_repro_in_cwd(
 
     """
     if checkout:
-        subprocess.check_call(["dvc", "checkout"], cwd=cwd)
+        subprocess.run(["dvc", "checkout"], cwd=cwd)
     if options is None:
         options = []
     if node_name is not None:
@@ -116,7 +117,7 @@ def clone(source: pathlib.Path, target: pathlib.Path) -> (git.Repo, git.Repo):
 
     # Set the cache directory to source
     target_repo.git.execute(
-        ["dvc", "cache", "dir", str(source.resolve() / ".dvc" / "cache")]
+        ["dvc", "cache", "dir", "--local", str(source.resolve() / ".dvc" / "cache")]
     )
 
     return source_repo, target_repo

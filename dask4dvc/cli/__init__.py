@@ -1,7 +1,9 @@
 """Typer based CLI interface of dask4dvc"""
 import logging
 import pathlib
+import subprocess
 import typing
+import urllib.request
 
 import dask.distributed
 import typer
@@ -27,6 +29,11 @@ class Help:
         "Split the DVC Graph into individual Nodes and run them in parallel if possible."
     )
     wait: str = "Ask before stopping the client"
+    option: str = (
+        "Additional options to pass to 'dvc repro'. E.g. '--option=--force"
+        " --option=--downstream'. Notice that some options like '--force' might show"
+        " unexpected behavior."
+    )
 
 
 @app.command()
@@ -41,14 +48,7 @@ def repro(
         help=Help.address,
     ),
     cleanup: bool = typer.Option(True, help=Help.cleanup),
-    option: typing.List[str] = typer.Option(
-        None,
-        help=(
-            "Additional options to pass to 'dvc repro'. E.g. '--option=--force"
-            " --option=--downstream'. Notice that some options like '--force' might"
-            " show unexpected behavior."
-        ),
-    ),
+    option: typing.List[str] = typer.Option(None, help=Help.option),
     parallel: bool = typer.Option(False, help=Help.parallel),
 ):
     """Replicate 'dvc repro' command
@@ -98,19 +98,17 @@ def run(
     ),
     cleanup: bool = typer.Option(True, help=Help.cleanup),
     parallel: bool = typer.Option(False, help=Help.parallel),
+    single: bool = typer.Option(
+        False, help="Run 'dvc exp run run-all' inside a single dask job"
+    ),
     wait: bool = typer.Option(False, help=Help.wait),
     load: bool = typer.Option(
         True, help="Load experiments from cache into 'dvc exp show' "
     ),
-    option: typing.List[str] = typer.Option(
-        None,
-        help=(
-            "Additional options to pass to 'dvc repro'. E.g. '--option=--force"
-            " --option=--downstream'. Notice that some options like '--force' might"
-            " show unexpected behavior."
-        ),
-    ),
+    option: typing.List[str] = typer.Option(None, help=Help.option),
 ) -> None:
+    if single:
+        raise NotImplementedError
     with dask.distributed.Client(address) as client:
         log.info("Starting dask server")
 
@@ -222,6 +220,22 @@ def version_callback(value: bool):
     if value:
         typer.echo(f"dask4dvc {dask4dvc.__version__}")
         raise typer.Exit()
+
+
+@app.command()
+def init(add_ignore: bool = True):
+    """Create an empty GIT/DVC Repository"""
+    subprocess.check_call(["git", "init"])
+    subprocess.check_call(["dvc", "init"])
+    if add_ignore:
+        gitignore = pathlib.Path(".gitignore")
+        with urllib.request.urlopen(
+            "https://raw.githubusercontent.com/github/gitignore/main/Python.gitignore"
+        ) as url:
+            gitignore.write_text(url.read().decode("utf-8"))
+
+    subprocess.check_call(["git", "add", "."])
+    subprocess.check_call(["git", "commit", "-m", "initial commit (by dask4dvc)"])
 
 
 @app.callback()
