@@ -30,7 +30,7 @@ def get_dvc_graph(cwd=None) -> nx.DiGraph:
 
 
 def run_dvc_repro_in_cwd(
-    node_name: str = None, cwd=None, options=None, checkout: bool = False, deps=None
+    node_name: str = None, cwd=None, options=None, checkout: bool = True, deps=None
 ) -> None:
     """Run the dvc repro cmd for a selected stage in a given cwd
 

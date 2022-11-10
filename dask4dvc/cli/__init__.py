@@ -98,17 +98,12 @@ def run(
     ),
     cleanup: bool = typer.Option(True, help=Help.cleanup),
     parallel: bool = typer.Option(False, help=Help.parallel),
-    single: bool = typer.Option(
-        False, help="Run 'dvc exp run run-all' inside a single dask job"
-    ),
     wait: bool = typer.Option(False, help=Help.wait),
     load: bool = typer.Option(
         True, help="Load experiments from cache into 'dvc exp show' "
     ),
     option: typing.List[str] = typer.Option(None, help=Help.option),
 ) -> None:
-    if single:
-        raise NotImplementedError
     with dask.distributed.Client(address) as client:
         log.info("Starting dask server")
 
