@@ -25,28 +25,32 @@ class Help:
     parallel: str = (
         "Split the DVC Graph into individual Nodes and run them in parallel if possible."
     )
-    wait: str = "Ask before stopping the client"
+    leave: str = "Ask before stopping the client"
     option: str = (
         "Additional options to pass to 'dvc repro'. E.g. '--option=--force"
         " --option=--downstream'. Notice that some options like '--force' might show"
         " unexpected behavior."
     )
-    targets: str = "Names of the stage to reproduce"
+    target: str = "Names of the stage to reproduce"
 
 
 @app.command()
 def repro(
     address: str = typer.Option(None, help=Help.address),
     option: typing.List[str] = typer.Option(None, help=Help.option),
-    target: typing.List[str] = typer.Option(None),
+    target: typing.List[str] = typer.Option(None, help=Help.target),
+    leave: bool = typer.Option(True, help=Help.leave),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     with dask.distributed.Client(address) as client:
+        log.info(client)
         result = client.submit(
             utils.dvc.repro, targets=target, options=option, pure=False
         )
 
         utils.dask.wait_for_futures(result)
+        if not leave:
+            utils.dask.wait()
 
 
 def version_callback(value: bool) -> None:
