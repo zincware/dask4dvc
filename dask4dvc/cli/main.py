@@ -43,7 +43,7 @@ def repro(
     """Replicate 'dvc repro' command using dask."""
     with dask.distributed.Client(address) as client:
         result = client.submit(
-            utils.dvc.dvc_repro, targets=target, options=option, pure=False
+            utils.dvc.repro, targets=target, options=option, pure=False
         )
 
         utils.dask.wait_for_futures(result)

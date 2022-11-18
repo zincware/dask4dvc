@@ -3,7 +3,7 @@ import subprocess
 import typing
 
 
-def dvc_repro(
+def repro(
     targets: typing.Union[str, list] = None,
     options: typing.Union[str, list] = None,
     cwd: str = None,
