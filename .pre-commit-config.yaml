@@ -1,0 +1,19 @@
+exclude: '.git|.tox'
+default_stages: [commit]
+fail_fast: true
+
+repos:
+  - repo: https://github.com/psf/black
+    rev: 22.6.0
+    hooks:
+      - id: black
+
+  - repo: https://github.com/timothycrosley/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.116
+    hooks:
+      - id: ruff
