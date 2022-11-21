@@ -23,26 +23,26 @@ def _exp_branch(queued_experiments: dict) -> list:
 @utils.main.timeit
 def _clone_branch(repo_names: list) -> typing.Dict[str, git.Repo]:
     """Make a clone of every branch to a temporary directory."""
-    repos = {}
-    for name in repo_names:
-        new_repo = pathlib.Path(".dask4dvc", name)
-        repos[name] = git.Repo.clone_from(url=".", to_path=new_repo, branch=name)
-    return repos
+    temp_dir = pathlib.Path(".dask4dvc")
+    return {
+        name: git.Repo.clone_from(url=".", to_path=temp_dir / name, branch=name)
+        for name in repo_names
+    }
 
 
 @utils.main.timeit
 def _update_run_cache(repos: typing.List[git.Repo]) -> None:
     """Update the run cache for the given repos."""
+    cmd = [
+        "dvc",
+        "cache",
+        "dir",
+        "--local",
+        str(pathlib.Path.cwd().resolve() / ".dvc" / "cache"),
+    ]
+
     for repo in repos:
-        repo.git.execute(
-            [
-                "dvc",
-                "cache",
-                "dir",
-                "--local",
-                str(pathlib.Path.cwd().resolve() / ".dvc" / "cache"),
-            ]
-        )
+        repo.git.execute(cmd)
 
 
 @contextlib.contextmanager

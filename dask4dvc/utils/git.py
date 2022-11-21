@@ -3,6 +3,7 @@
 This includes cloning, setting up the cache, managing temporary directories.
 """
 
+import functools
 import pathlib
 import subprocess
 import typing
@@ -32,7 +33,8 @@ def update_gitignore(
     return True
 
 
-def remove_branch(names: typing.Union[str, list]) -> None:
+@functools.singledispatch
+def remove_branch(names: str) -> None:
     """Remove a branch.
 
     Parameters
@@ -40,10 +42,22 @@ def remove_branch(names: typing.Union[str, list]) -> None:
     names: str
         name of the branch to delete
     """
-    if isinstance(names, str):
-        names = [names]
+    subprocess.check_call(["git", "branch", "-D", names])
+
+
+@remove_branch.register
+def _(names: list) -> None:
+    """Remove all given branches.
+
+    Using singledispatch here because I wanted to try it out.
+
+    Parameters
+    ----------
+    names: list
+        A list of branch names to remove
+    """
     for name in names:
-        subprocess.check_call(["git", "branch", "-D", name])
+        remove_branch(name)
 
 
 def remove_tmp_branches() -> None:

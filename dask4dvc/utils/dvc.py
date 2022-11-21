@@ -150,24 +150,6 @@ def exp_branch(experiment: str, branch: str = None) -> None:
     repo.git.checkout(active_branch)
 
 
-def queue_pop(name: str) -> None:
-    """Run a single experiment from the queue.
-
-    Parameters
-    ----------
-    name: str
-        The name of the experiment.
-
-    References
-    ----------
-    workaround for https://github.com/iterative/dvc/issues/8121
-
-    """
-    subprocess.check_call(["dvc", "exp", "apply", name])
-    subprocess.check_call(["dvc", "exp", "remove", name])
-    subprocess.check_call(["dvc", "exp", "run", "--temp", "--name", name])
-
-
 def exp_run_all(**kwargs: dict) -> None:
     """Run 'dvc exp run --run-all' to load experiments."""
     # TODO: n_jobs doesn't seem to work properly. Find a faster workaround.
