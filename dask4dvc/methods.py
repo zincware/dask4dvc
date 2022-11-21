@@ -5,6 +5,7 @@ import pathlib
 import typing
 
 import git
+import typer
 
 from dask4dvc import utils
 
@@ -62,11 +63,20 @@ def get_experiment_repos() -> typing.Dict[str, git.Repo]:
     ------
     dict[str, Repo]: temporary repositories set up for running 'dvc repro' with
         a shared run cache.
+
+    Raises
+    ------
+    typer.Exit: if no queued experiments are available.
+
     """
     if utils.git.update_gitignore(ignore=".dask4dvc/"):
         raise ValueError("'.gitignore' file was updated. Please commit changes.")
 
     queued_experiments = utils.main.timeit(utils.dvc.exp_show_queued)()
+
+    if len(queued_experiments) == 0:
+        typer.echo("Skipping: no experiments were found in the queue.")
+        raise typer.Exit()
 
     repo_names = _exp_branch(queued_experiments)
     repos = _clone_branch(repo_names)
@@ -75,5 +85,5 @@ def get_experiment_repos() -> typing.Dict[str, git.Repo]:
     try:
         yield repos
     finally:
-        utils.git.remove_branch(list(repos))
+        git.Repo(".").delete_head(*list(repos), force=True)
         utils.main.remove_paths([clone.working_dir for clone in repos.values()])

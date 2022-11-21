@@ -56,3 +56,8 @@ def test_run(multi_experiments_repo: tuple) -> None:
     result = runner.invoke(app, ["run"])
     assert result.exit_code == 0
     assert len(dask4dvc.utils.dvc.exp_show_queued()) == 0
+
+    # Try to run again
+    result = runner.invoke(app, ["run"])
+    assert result.exit_code == 0
+    assert result.stdout.startswith("Skipping: no experiments were found in the queue.")

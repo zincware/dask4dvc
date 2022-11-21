@@ -17,7 +17,7 @@ def timeit(func: typing.Callable) -> typing.Callable:
         start_time = time.time()
         result = func(*args, **kwargs)
         stop_time = time.time()
-        log.info(f"'{func.__name__}' took {stop_time - start_time:4f} s")
+        log.debug(f"'{func.__name__}' took {stop_time - start_time:4f} s")
         return result
 
     return wrapper
