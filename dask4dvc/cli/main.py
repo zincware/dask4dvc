@@ -7,7 +7,7 @@ import typing
 import dask.distributed
 import typer
 
-from dask4dvc import utils
+from dask4dvc import methods, utils
 
 app = typer.Typer()
 
@@ -50,7 +50,39 @@ def repro(
 
         utils.dask.wait_for_futures(result)
         if not leave:
-            utils.dask.wait()
+            utils.main.wait()
+
+
+@app.command()
+def run(
+    address: str = typer.Option(None, help=Help.address),
+    option: typing.List[str] = typer.Option(None, help=Help.option),
+    leave: bool = typer.Option(True, help=Help.leave),
+) -> None:
+    """Replicate 'dvc exp run --run-all' command using dask.
+
+    This will run the available experiments in parallel using dask.
+    When finished, it will load the experiments using 'dvc exp run --run-all'.
+    """
+    with dask.distributed.Client(address) as client:
+        log.info(client)
+        with methods.get_experiment_repos() as repos:
+            results = {}
+            for name, repo in repos.items():
+                results[name] = client.submit(
+                    utils.dvc.repro,
+                    options=option,
+                    cwd=repo.working_dir,
+                    pure=False,
+                    key=f"repro_{name[4:]}",  # cut the 'tmp_' in front
+                )
+            run_all = client.submit(
+                utils.dvc.exp_run_all, n_jobs=len(results), pure=False, deps=results
+            )
+
+            utils.dask.wait_for_futures(run_all)
+            if not leave:
+                utils.main.wait()
 
 
 def version_callback(value: bool) -> None:

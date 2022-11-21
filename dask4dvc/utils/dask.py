@@ -16,8 +16,3 @@ def wait_for_futures(futures: typing.Union[Future, typing.Dict[str, Future]]) ->
 
     for future in futures.values():
         _ = future.result()
-
-
-def wait() -> None:
-    """Wait until user input."""
-    _ = input("Press Enter to close the client")

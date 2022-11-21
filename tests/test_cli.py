@@ -3,6 +3,7 @@ import pytest
 from dask.distributed import LocalCluster
 from typer.testing import CliRunner
 
+import dask4dvc.utils.dvc
 from dask4dvc.cli.main import app
 
 runner = CliRunner()
@@ -47,3 +48,11 @@ def test_version() -> None:
     result = runner.invoke(app, ["--version"])
 
     assert result.exit_code == 0
+
+
+def test_run(multi_experiments_repo: tuple) -> None:
+    """Test 'dask4dvc run'."""
+    assert len(dask4dvc.utils.dvc.exp_show_queued()) == 3
+    result = runner.invoke(app, ["run"])
+    assert result.exit_code == 0
+    assert len(dask4dvc.utils.dvc.exp_show_queued()) == 0

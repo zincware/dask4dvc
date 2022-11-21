@@ -1,10 +1,11 @@
+"""The 'dask4dvc' package."""
 import importlib.metadata
 import logging
 import sys
 
-from dask4dvc import cli, utils
+from dask4dvc import cli, methods, utils
 
-__all__ = ["cli", "utils"]
+__all__ = ["cli", "utils", "methods"]
 
 __version__ = importlib.metadata.version("dask4dvc")
 
