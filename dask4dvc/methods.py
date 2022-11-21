@@ -5,6 +5,7 @@ import pathlib
 import typing
 
 import git
+import tqdm
 import typer
 
 from dask4dvc import utils
@@ -14,7 +15,12 @@ from dask4dvc import utils
 def _exp_branch(queued_experiments: dict) -> list:
     """Create a branch for every experiment."""
     repo_names = []
-    for exp, name in queued_experiments.items():
+    for exp, name in tqdm.tqdm(
+        queued_experiments.items(),
+        ncols=100,
+        disable=len(queued_experiments) < utils.CONFIG.tqdm_threshold,
+        desc="dvc exp branch",
+    ):
         name = f"tmp_{exp[:7]}" if name is None else f"tmp_{name}"
         repo_names.append(name)
         utils.dvc.exp_branch(experiment=exp, branch=name)
@@ -42,7 +48,12 @@ def _update_run_cache(repos: typing.List[git.Repo]) -> None:
         str(pathlib.Path.cwd().resolve() / ".dvc" / "cache"),
     ]
 
-    for repo in repos:
+    for repo in tqdm.tqdm(
+        repos,
+        ncols=100,
+        disable=len(repos) < utils.CONFIG.tqdm_threshold,
+        desc="dvc cache dir",
+    ):
         repo.git.execute(cmd)
 
 

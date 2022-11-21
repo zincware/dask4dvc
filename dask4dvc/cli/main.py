@@ -2,6 +2,7 @@
 
 import importlib.metadata
 import logging
+import shutil
 import typing
 
 import dask.distributed
@@ -83,6 +84,26 @@ def run(
             utils.dask.wait_for_futures(run_all)
             if not leave:
                 utils.main.wait()
+
+
+@app.command()
+def clean(
+    branches: bool = typer.Option(
+        False,
+        help=(
+            "Remove all branches created by 'dask4dvc' / all branches starting with"
+            " 'tmp_'."
+        ),
+    ),
+    temp: bool = typer.Option(
+        False, help="Remove all temporary clones by removing the '.dask4dvc' directory."
+    ),
+) -> None:
+    """Helpers to clean up 'dask4dvc' if something went wrong."""
+    if branches:
+        utils.git.remove_tmp_branches()
+    if temp:
+        shutil.rmtree(".dask4dvc/", ignore_errors=True)
 
 
 def version_callback(value: bool) -> None:
