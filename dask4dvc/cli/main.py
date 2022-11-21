@@ -59,6 +59,14 @@ def run(
     address: str = typer.Option(None, help=Help.address),
     option: typing.List[str] = typer.Option(None, help=Help.option),
     leave: bool = typer.Option(True, help=Help.leave),
+    load: bool = typer.Option(
+        True,
+        help=(
+            "Use 'dvc exp run' to load the experiments from run cache. If this option is"
+            " not selected, the experiments will only be available through the run cache"
+            " and the queue will not be cleared."
+        ),
+    ),
 ) -> None:
     """Replicate 'dvc exp run --run-all' command using dask.
 
@@ -77,11 +85,14 @@ def run(
                     pure=False,
                     key=f"repro_{name[4:]}",  # cut the 'tmp_' in front
                 )
-            run_all = client.submit(
-                utils.dvc.exp_run_all, n_jobs=len(results), pure=False, deps=results
-            )
+            if load:
+                run_all = client.submit(
+                    utils.dvc.exp_run_all, n_jobs=len(results), pure=False, deps=results
+                )
+                utils.dask.wait_for_futures(run_all)
+            else:
+                utils.dask.wait_for_futures(results)
 
-            utils.dask.wait_for_futures(run_all)
             if not leave:
                 utils.main.wait()
 
