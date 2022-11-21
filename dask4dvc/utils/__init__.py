@@ -1,5 +1,6 @@
 """Helper functions."""
 
-from dask4dvc.utils import dask, dvc
+from dask4dvc.utils import dask, dvc, git, main
+from dask4dvc.utils.config import CONFIG
 
-__all__ = ["dvc", "dask"]
+__all__ = ["dvc", "dask", "git", "main", "CONFIG"]
