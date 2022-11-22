@@ -1,5 +1,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/zincware/dask4dvc/badge.svg?branch=main)](https://coveralls.io/github/zincware/dask4dvc?branch=main)
 ![PyTest](https://github.com/zincware/dask4dvc/actions/workflows/pytest.yaml/badge.svg)
+[![PyPI version](https://badge.fury.io/py/dask4dvc.svg)](https://badge.fury.io/py/dask4dvc)
 
 # Dask4DVC - Distributed Node Exectuion
 [DVC](dvc.org) provides tools for building and executing the computational graph locally through various methods. 
@@ -8,7 +9,8 @@ The `dask4dvc` package combines [Dask Distributed](https://distributed.dask.org/
 ## Usage
 Dask4DVC provides a CLI similar to DVC.
 
-- `dvc repro` becomes `dask4dvc repro`
+- `dvc repro` becomes `dask4dvc repro`.
+- `dvc exp run --run-all` becomes `dask4dvc run`.
 
 ### SLURM Cluster
 
