@@ -54,7 +54,7 @@ def _update_run_cache(repos: typing.List[git.Repo]) -> None:
 
 
 @contextlib.contextmanager
-def get_experiment_repos(cleanup: list) -> typing.Dict[str, git.Repo]:
+def get_experiment_repos(delete: list) -> typing.Dict[str, git.Repo]:
     """Prepare DVC experiments for parallel execution.
 
     This contextmanager does:
@@ -68,9 +68,8 @@ def get_experiment_repos(cleanup: list) -> typing.Dict[str, git.Repo]:
 
     Parameters
     ----------
-    cleanup: list[str], default = None
-        remove the "branches" and "temp" afterwards. By default, both will be removed.
-        you can select via 'cleanup=[branches, temp]'.
+    delete: list[str]
+        remove the "branches" and "temp" afterwards.
 
     Yields
     ------
@@ -98,7 +97,7 @@ def get_experiment_repos(cleanup: list) -> typing.Dict[str, git.Repo]:
     try:
         yield repos
     finally:
-        if "branches" in cleanup:
+        if "branches" in delete:
             git.Repo(".").delete_head(*list(repos), force=True)
-        if "temp" in cleanup:
+        if "temp" in delete:
             utils.main.remove_paths([clone.working_dir for clone in repos.values()])

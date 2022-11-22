@@ -78,7 +78,7 @@ def run(
     This will run the available experiments in parallel using dask.
     When finished, it will load the experiments using 'dvc exp run --run-all'.
     """
-    with methods.get_experiment_repos(cleanup=delete) as repos:
+    with methods.get_experiment_repos(delete=delete) as repos:
         with dask.distributed.Client(address) as client:
             log.info(client)
             results = {}
