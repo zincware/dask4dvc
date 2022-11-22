@@ -39,26 +39,22 @@ def _clone_branch(repo_names: list) -> typing.Dict[str, git.Repo]:
 
 @utils.main.timeit
 def _update_run_cache(repos: typing.List[git.Repo]) -> None:
-    """Update the run cache for the given repos."""
-    cmd = [
-        "dvc",
-        "cache",
-        "dir",
-        "--local",
-        str(pathlib.Path.cwd().resolve() / ".dvc" / "cache"),
-    ]
+    """Update the run cache for the given repos.
 
-    for repo in tqdm.tqdm(
-        repos,
-        ncols=100,
-        disable=len(repos) < utils.CONFIG.tqdm_threshold,
-        desc="dvc cache dir",
-    ):
-        repo.git.execute(cmd)
+    Because it is using '--local' in a new repository,
+    we replace 'dvc cache dir --local <path>' with writing it directly.
+    """
+    config_file = pathlib.Path(".dvc/config.local")
+
+    for repo in repos:
+        cache_dir = pathlib.Path.cwd().resolve() / ".dvc" / "cache"
+        with open(repo.working_dir / config_file, "a") as file:
+            file.write("[cache]\n")
+            file.write(f"\t dir = {cache_dir}\n")
 
 
 @contextlib.contextmanager
-def get_experiment_repos() -> typing.Dict[str, git.Repo]:
+def get_experiment_repos(cleanup: list) -> typing.Dict[str, git.Repo]:
     """Prepare DVC experiments for parallel execution.
 
     This contextmanager does:
@@ -69,6 +65,12 @@ def get_experiment_repos() -> typing.Dict[str, git.Repo]:
     and then finishes by:
         1. removing the temporary branches.
         2. removing the temporary clones.
+
+    Parameters
+    ----------
+    cleanup: list[str], default = None
+        remove the "branches" and "temp" afterwards. By default, both will be removed.
+        you can select via 'cleanup=[branches, temp]'.
 
     Yields
     ------
@@ -96,5 +98,7 @@ def get_experiment_repos() -> typing.Dict[str, git.Repo]:
     try:
         yield repos
     finally:
-        git.Repo(".").delete_head(*list(repos), force=True)
-        utils.main.remove_paths([clone.working_dir for clone in repos.values()])
+        if "branches" in cleanup:
+            git.Repo(".").delete_head(*list(repos), force=True)
+        if "temp" in cleanup:
+            utils.main.remove_paths([clone.working_dir for clone in repos.values()])

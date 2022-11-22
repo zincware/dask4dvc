@@ -22,7 +22,6 @@ class Help:
         "This can be the address of a DASK Scheduler server like '127.0.0.1:31415'. If"
         " 'None' Dask will launch a new Server."
     )
-    cleanup: str = "Remove the temporary directories"
     parallel: str = (
         "Split the DVC Graph into individual Nodes and run them in parallel if possible."
     )
@@ -64,8 +63,14 @@ def run(
         help=(
             "Use 'dvc exp run' to load the experiments from run cache. If this option is"
             " not selected, the experiments will only be available through the run cache"
-            " and the queue will not be cleared."
+            " and the queue will not be cleared. Do not use with 'always_changed = True'."
         ),
+    ),
+    delete: typing.List[str] = typer.Option(
+        ["branches", "temp"],
+        "-D",
+        "--delete",
+        help="Remove the temporary branches and directories",
     ),
 ) -> None:
     """Replicate 'dvc exp run --run-all' command using dask.
@@ -73,7 +78,7 @@ def run(
     This will run the available experiments in parallel using dask.
     When finished, it will load the experiments using 'dvc exp run --run-all'.
     """
-    with methods.get_experiment_repos() as repos:
+    with methods.get_experiment_repos(cleanup=delete) as repos:
         with dask.distributed.Client(address) as client:
             log.info(client)
             results = {}

@@ -1,6 +1,5 @@
 """Utils that are related to 'DVC'."""
 
-import contextlib
 import json
 import re
 import subprocess
@@ -43,8 +42,7 @@ def repro(
     elif isinstance(options, str):
         options = [options]
 
-    with contextlib.suppress(subprocess.CalledProcessError):
-        subprocess.check_call(["dvc", "checkout"], cwd=cwd)
+    subprocess.run(["dvc", "checkout", "--quiet"], cwd=cwd)
 
     cmd = ["dvc", "repro"] + targets + options
     subprocess.check_call(cmd, cwd=cwd)
