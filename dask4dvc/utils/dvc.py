@@ -1,4 +1,5 @@
 """Utils that are related to 'DVC'."""
+
 import json
 import re
 import subprocess
@@ -40,6 +41,8 @@ def repro(
         options = []
     elif isinstance(options, str):
         options = [options]
+
+    subprocess.run(["dvc", "checkout", "--quiet"], cwd=cwd)
 
     cmd = ["dvc", "repro"] + targets + options
     subprocess.check_call(cmd, cwd=cwd)

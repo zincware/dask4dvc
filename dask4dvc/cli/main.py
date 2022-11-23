@@ -22,7 +22,6 @@ class Help:
         "This can be the address of a DASK Scheduler server like '127.0.0.1:31415'. If"
         " 'None' Dask will launch a new Server."
     )
-    cleanup: str = "Remove the temporary directories"
     parallel: str = (
         "Split the DVC Graph into individual Nodes and run them in parallel if possible."
     )
@@ -59,13 +58,27 @@ def run(
     address: str = typer.Option(None, help=Help.address),
     option: typing.List[str] = typer.Option(None, help=Help.option),
     leave: bool = typer.Option(True, help=Help.leave),
+    load: bool = typer.Option(
+        True,
+        help=(
+            "Use 'dvc exp run' to load the experiments from run cache. If this option is"
+            " not selected, the experiments will only be available through the run cache"
+            " and the queue will not be cleared. Do not use with 'always_changed = True'."
+        ),
+    ),
+    delete: typing.List[str] = typer.Option(
+        ["branches", "temp"],
+        "-D",
+        "--delete",
+        help="Remove the temporary branches and directories",
+    ),
 ) -> None:
     """Replicate 'dvc exp run --run-all' command using dask.
 
     This will run the available experiments in parallel using dask.
     When finished, it will load the experiments using 'dvc exp run --run-all'.
     """
-    with methods.get_experiment_repos() as repos:
+    with methods.get_experiment_repos(delete=delete) as repos:
         with dask.distributed.Client(address) as client:
             log.info(client)
             results = {}
@@ -77,11 +90,14 @@ def run(
                     pure=False,
                     key=f"repro_{name[4:]}",  # cut the 'tmp_' in front
                 )
-            run_all = client.submit(
-                utils.dvc.exp_run_all, n_jobs=len(results), pure=False, deps=results
-            )
+            if load:
+                run_all = client.submit(
+                    utils.dvc.exp_run_all, n_jobs=len(results), pure=False, deps=results
+                )
+                utils.dask.wait_for_futures(run_all)
+            else:
+                utils.dask.wait_for_futures(results)
 
-            utils.dask.wait_for_futures(run_all)
             if not leave:
                 utils.main.wait()
 

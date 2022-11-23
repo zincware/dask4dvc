@@ -1280,7 +1280,7 @@ tests = ["mypy (==0.971)", "pylint (==2.14.5)", "pytest (==7.1.2)", "pytest-cov 
 
 [[package]]
 name = "jedi"
-version = "0.18.1"
+version = "0.18.2"
 description = "An autocompletion tool for Python that can be used for text editors."
 category = "dev"
 optional = false
@@ -1290,8 +1290,9 @@ python-versions = ">=3.6"
 parso = ">=0.8.0,<0.9.0"
 
 [package.extras]
+docs = ["Jinja2 (==2.11.3)", "MarkupSafe (==1.1.1)", "Pygments (==2.8.1)", "alabaster (==0.7.12)", "babel (==2.9.1)", "chardet (==4.0.0)", "commonmark (==0.8.1)", "docutils (==0.17.1)", "future (==0.18.2)", "idna (==2.10)", "imagesize (==1.2.0)", "mock (==1.0.1)", "packaging (==20.9)", "pyparsing (==2.4.7)", "pytz (==2021.1)", "readthedocs-sphinx-ext (==2.1.4)", "recommonmark (==0.5.0)", "requests (==2.25.1)", "six (==1.15.0)", "snowballstemmer (==2.1.0)", "sphinx (==1.8.5)", "sphinx-rtd-theme (==0.4.3)", "sphinxcontrib-serializinghtml (==1.1.4)", "sphinxcontrib-websupport (==1.2.4)", "urllib3 (==1.26.4)"]
 qa = ["flake8 (==3.8.3)", "mypy (==0.782)"]
-testing = ["Django (<3.1)", "colorama", "docopt", "pytest (<7.0.0)"]
+testing = ["Django (<3.1)", "attrs", "colorama", "docopt", "pytest (<7.0.0)"]
 
 [[package]]
 name = "jinja2"
@@ -1375,7 +1376,7 @@ test = ["ipykernel", "pre-commit", "pytest", "pytest-cov", "pytest-timeout"]
 
 [[package]]
 name = "jupyter-server"
-version = "1.23.2"
+version = "1.23.3"
 description = "The backend—i.e. core services, APIs, and REST endpoints—to Jupyter web applications."
 category = "dev"
 optional = false
@@ -1962,7 +1963,7 @@ twisted = ["twisted"]
 
 [[package]]
 name = "prompt-toolkit"
-version = "3.0.32"
+version = "3.0.33"
 description = "Library for building powerful interactive command lines in Python"
 category = "main"
 optional = false
@@ -2703,7 +2704,7 @@ python-versions = ">=3.8,<4.0"
 
 [[package]]
 name = "znlib"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 category = "dev"
 optional = false
@@ -2715,7 +2716,7 @@ matplotlib = {version = ">=3.6.1,<4.0.0", optional = true, markers = "extra == \
 zntrack = {version = ">=0.4.3,<0.5.0", optional = true, markers = "extra == \"zntrack\" or extra == \"atomistic\""}
 
 [package.extras]
-atomistic = ["ase (>=3.22.1,<4.0.0)", "zntrack (>=0.4.3,<0.5.0)"]
+atomistic = ["ase (>=3.22.1,<4.0.0)", "cp2k-input-tools[yaml] (>=0.8.2,<0.9.0)", "zntrack (>=0.4.3,<0.5.0)"]
 zntrack = ["matplotlib (>=3.6.1,<4.0.0)", "zntrack (>=0.4.3,<0.5.0)"]
 
 [[package]]
@@ -3579,8 +3580,8 @@ iterative-telemetry = [
     {file = "iterative_telemetry-0.0.6-py3-none-any.whl", hash = "sha256:0fe32af2f5532c26e353904114e5e9d42ef1e9a9d1b988fe6a1d69d831cbb2ac"},
 ]
 jedi = [
-    {file = "jedi-0.18.1-py2.py3-none-any.whl", hash = "sha256:637c9635fcf47945ceb91cd7f320234a7be540ded6f3e99a50cb6febdfd1ba8d"},
-    {file = "jedi-0.18.1.tar.gz", hash = "sha256:74137626a64a99c8eb6ae5832d99b3bdd7d29a3850fe2aa80a4126b2a7d949ab"},
+    {file = "jedi-0.18.2-py2.py3-none-any.whl", hash = "sha256:203c1fd9d969ab8f2119ec0a3342e0b49910045abe6af0a3ae83a5764d54639e"},
+    {file = "jedi-0.18.2.tar.gz", hash = "sha256:bae794c30d07f6d910d32a7048af09b5a39ed740918da923c6b780790ebac612"},
 ]
 jinja2 = [
     {file = "Jinja2-3.1.2-py3-none-any.whl", hash = "sha256:6088930bfe239f0e6710546ab9c19c9ef35e29792895fed6e6e31a023a182a61"},
@@ -3603,8 +3604,8 @@ jupyter-core = [
     {file = "jupyter_core-5.0.0.tar.gz", hash = "sha256:4ed68b7c606197c7e344a24b7195eef57898157075a69655a886074b6beb7043"},
 ]
 jupyter-server = [
-    {file = "jupyter_server-1.23.2-py3-none-any.whl", hash = "sha256:c01d0e84c22a14dd6b0e7d8ce4105b08a3426b46582668e28046a64c07311a4f"},
-    {file = "jupyter_server-1.23.2.tar.gz", hash = "sha256:69cb954ef02c0ba1837787e34e4a1240c93c8eb590662fae1840778861957660"},
+    {file = "jupyter_server-1.23.3-py3-none-any.whl", hash = "sha256:438496cac509709cc85e60172e5538ca45b4c8a0862bb97cd73e49f2ace419cb"},
+    {file = "jupyter_server-1.23.3.tar.gz", hash = "sha256:f7f7a2f9d36f4150ad125afef0e20b1c76c8ff83eb5e39fb02d3b9df0f9b79ab"},
 ]
 jupyterlab = [
     {file = "jupyterlab-3.5.0-py3-none-any.whl", hash = "sha256:f433059fe0e12d75ea90a81a0b6721113bb132857e3ec2197780b6fe84cbcbde"},
@@ -4147,8 +4148,8 @@ prometheus-client = [
     {file = "prometheus_client-0.15.0.tar.gz", hash = "sha256:be26aa452490cfcf6da953f9436e95a9f2b4d578ca80094b4458930e5f584ab1"},
 ]
 prompt-toolkit = [
-    {file = "prompt_toolkit-3.0.32-py3-none-any.whl", hash = "sha256:24becda58d49ceac4dc26232eb179ef2b21f133fecda7eed6018d341766ed76e"},
-    {file = "prompt_toolkit-3.0.32.tar.gz", hash = "sha256:e7f2129cba4ff3b3656bbdda0e74ee00d2f874a8bcdb9dd16f5fec7b3e173cae"},
+    {file = "prompt_toolkit-3.0.33-py3-none-any.whl", hash = "sha256:ced598b222f6f4029c0800cefaa6a17373fb580cd093223003475ce32805c35b"},
+    {file = "prompt_toolkit-3.0.33.tar.gz", hash = "sha256:535c29c31216c77302877d5120aef6c94ff573748a5b5ca5b1b1f76f5e700c73"},
 ]
 psutil = [
     {file = "psutil-5.9.4-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:c1ca331af862803a42677c120aff8a814a804e09832f166f226bfd22b56feee8"},
@@ -4799,7 +4800,7 @@ znjson = [
     {file = "znjson-0.2.1.tar.gz", hash = "sha256:1e81ef0b76cfdc4432d710dbed53248e4c67610122f1df0376bd9de20a46976e"},
 ]
 znlib = [
-    {file = "znlib-0.1.0-py3-none-any.whl", hash = "sha256:2a74e66705061b94b5de2607503b74348595cb0fff4a2815637e1942747fe1fc"},
-    {file = "znlib-0.1.0.tar.gz", hash = "sha256:bdb71f6e59abe7681e855c4eff1af4f2858fc65210b83db096f5ad9f4d32bafe"},
+    {file = "znlib-0.1.1-py3-none-any.whl", hash = "sha256:0b626d6966ea1d32566fee8bb9634983e0ef3d17fe70e5a5f734610c58688839"},
+    {file = "znlib-0.1.1.tar.gz", hash = "sha256:f9e838a2b863a7474216e5792be9e775fa6039a7a3764b9dc77402f142408a7a"},
 ]
 zntrack = []
