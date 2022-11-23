@@ -15,7 +15,7 @@ python = "^3.8"
 dask = "^2022.7.1"
 distributed = "^2022.7.1"
 dask-jobqueue = "^0.8.1"
-dvc = "^2.15.0"
+dvc = "^2.34.3"
 typer = "^0.6.1"
 bokeh = "^2"
 # for bokeh see https://distributed.dask.org/en/stable/changelog.html#v2022-11-1
