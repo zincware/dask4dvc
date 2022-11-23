@@ -1,6 +1,6 @@
 """Utils that are related to 'DVC'."""
-import contextlib
 import json
+import logging
 import re
 import subprocess
 import typing
@@ -11,6 +11,8 @@ import dvc.repo.experiments.queue.celery
 import git
 
 from dask4dvc.utils.config import CONFIG
+
+log = logging.getLogger(__name__)
 
 
 def repro(
@@ -47,17 +49,10 @@ def repro(
     elif isinstance(options, str):
         options = [options]
 
-    if CONFIG.use_dvc_api:
-        repo = dvc.repo.Repo()
-        with contextlib.suppress(dvc.exceptions.CheckoutError):
-            repo.checkout()
-        options_dict = {x.replace("--", ""): True for x in options}
-        repo.reproduce(**options_dict)
-    else:
-        subprocess.run(["dvc", "checkout", "--quiet"], cwd=cwd)
+    subprocess.run(["dvc", "checkout", "--quiet"], cwd=cwd)
 
-        cmd = ["dvc", "repro"] + targets + options
-        subprocess.check_call(cmd, cwd=cwd)
+    cmd = ["dvc", "repro"] + targets + options
+    subprocess.check_call(cmd, cwd=cwd)
 
 
 def exp_show(cwd: str = None) -> dict:

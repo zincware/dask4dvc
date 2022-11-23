@@ -81,22 +81,23 @@ def run(
     with methods.get_experiment_repos(delete=delete) as repos:
         with dask.distributed.Client(address) as client:
             log.info(client)
-            results = {}
-            for name, repo in repos.items():
-                results[name] = client.submit(
+            results = {
+                name: client.submit(
                     utils.dvc.repro,
                     options=option,
                     cwd=repo.working_dir,
                     pure=False,
                     key=f"repro_{name[4:]}",  # cut the 'tmp_' in front
                 )
+                for name, repo in repos.items()
+            }
+
+            utils.dask.wait_for_futures(results)
             if load:
                 run_all = client.submit(
                     utils.dvc.exp_run_all, n_jobs=len(results), pure=False, deps=results
                 )
                 utils.dask.wait_for_futures(run_all)
-            else:
-                utils.dask.wait_for_futures(results)
 
             if not leave:
                 utils.main.wait()
