@@ -197,8 +197,6 @@ def exp_branch(experiment: str, branch: str = None) -> None:
 
 def exp_run_all(jobs: int = 1, **kwargs: dict) -> None:
     """Run 'dvc exp run --run-all' to load experiments."""
-    if CONFIG.use_dvc_api:
-        repo = dvc.repo.Repo()
-        repo.experiments.reproduce_celery(jobs=jobs)
-    else:
-        subprocess.check_call(["dvc", "exp", "run", "--run-all", "--jobs", str(jobs)])
+    # raises 'daemonic processes are not allowed to have children'
+    # dvc.repo.Repo().experiments.reproduce_celery(jobs=jobs)
+    subprocess.check_call(["dvc", "exp", "run", "--run-all", "--jobs", str(jobs)])
