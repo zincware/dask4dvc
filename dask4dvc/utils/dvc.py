@@ -1,11 +1,16 @@
 """Utils that are related to 'DVC'."""
-
+import contextlib
 import json
 import re
 import subprocess
 import typing
 
+import dvc.exceptions
+import dvc.repo
+import dvc.repo.experiments.queue.celery
 import git
+
+from dask4dvc.utils.config import CONFIG
 
 
 def repro(
@@ -42,10 +47,17 @@ def repro(
     elif isinstance(options, str):
         options = [options]
 
-    subprocess.run(["dvc", "checkout", "--quiet"], cwd=cwd)
+    if CONFIG.use_dvc_api:
+        repo = dvc.repo.Repo()
+        with contextlib.suppress(dvc.exceptions.CheckoutError):
+            repo.checkout()
+        options_dict = {x.replace("--", ""): True for x in options}
+        repo.reproduce(**options_dict)
+    else:
+        subprocess.run(["dvc", "checkout", "--quiet"], cwd=cwd)
 
-    cmd = ["dvc", "repro"] + targets + options
-    subprocess.check_call(cmd, cwd=cwd)
+        cmd = ["dvc", "repro"] + targets + options
+        subprocess.check_call(cmd, cwd=cwd)
 
 
 def exp_show(cwd: str = None) -> dict:
@@ -75,7 +87,7 @@ def exp_show(cwd: str = None) -> dict:
     return json.loads(json_str)
 
 
-def exp_show_queued(cwd: str = None) -> dict:
+def _exp_show_queued(cwd: str = None) -> dict:
     """Get all currently queued experiments.
 
     Try to get the name that was used to queue, otherwise use the hash
@@ -106,6 +118,32 @@ def exp_show_queued(cwd: str = None) -> dict:
             )
 
     return exp_names
+
+
+def exp_show_queued(*args: tuple, **kwargs: dict) -> dict:
+    """Select the correct method based on CONFIG."""
+    if CONFIG.use_dvc_api:
+        return collect_queued_experiment(*args, **kwargs)
+    return _exp_show_queued(*args, **kwargs)
+
+
+def collect_queued_experiment(cwd: str = None) -> dict:
+    """Show queued experiments using DVC API.
+
+    This uses some internal DVC methods which are not made officially public.
+    Therefore, this method can potentially break with any new DVC release.
+
+    Returns
+    -------
+    exp_names: dict
+        A dictionary with {rev: exp_name}. If 'exp_name' was not set, it is None.
+    """
+    repo = dvc.repo.Repo(root_dir=cwd)
+
+    celery_queue = dvc.repo.experiments.queue.celery.LocalCeleryQueue(repo=repo, ref=None)
+    experiments = list(celery_queue.iter_queued())
+
+    return {x.stash_rev: x.name for x in experiments}
 
 
 def exp_branch(experiment: str, branch: str = None) -> None:
@@ -139,7 +177,11 @@ def exp_branch(experiment: str, branch: str = None) -> None:
             f"Can not create a new branch {branch} because it already exists."
         )
 
-    repo.git.execute(["dvc", "exp", "apply", experiment])
+    if CONFIG.use_dvc_api:
+        dvc_repo = dvc.repo.Repo()
+        dvc_repo.experiments.apply(experiment)
+    else:
+        repo.git.execute(["dvc", "exp", "apply", experiment])
 
     repo_branch = repo.create_head(branch)
     repo_branch.checkout()
@@ -153,7 +195,10 @@ def exp_branch(experiment: str, branch: str = None) -> None:
     repo.git.checkout(active_branch)
 
 
-def exp_run_all(**kwargs: dict) -> None:
+def exp_run_all(jobs: int = 1, **kwargs: dict) -> None:
     """Run 'dvc exp run --run-all' to load experiments."""
-    # TODO: n_jobs doesn't seem to work properly. Find a faster workaround.
-    subprocess.check_call(["dvc", "exp", "run", "--run-all"])
+    if CONFIG.use_dvc_api:
+        repo = dvc.repo.Repo()
+        repo.experiments.reproduce_celery(jobs=jobs)
+    else:
+        subprocess.check_call(["dvc", "exp", "run", "--run-all", "--jobs", str(jobs)])
