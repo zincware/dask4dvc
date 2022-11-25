@@ -135,10 +135,7 @@ def collect_queued_experiment(cwd: str = None) -> dict:
     """
     repo = dvc.repo.Repo(root_dir=cwd)
 
-    celery_queue = dvc.repo.experiments.queue.celery.LocalCeleryQueue(repo=repo, ref=None)
-    experiments = list(celery_queue.iter_queued())
-
-    return {x.stash_rev: x.name for x in experiments}
+    return {x.stash_rev: x.name for x in repo.experiments.celery_queue.iter_queued()}
 
 
 def exp_branch(experiment: str, branch: str = None) -> None:
