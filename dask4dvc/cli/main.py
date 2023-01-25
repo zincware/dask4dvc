@@ -37,6 +37,7 @@ class Help:
         "Run the process in detached mode (Ctrl + C will not close 'dask4dvc' in the"
         " background)."
     )
+    config: str = "path to config file, e.g. 'dask4dvc.yaml'"
 
 
 @app.command()
@@ -46,14 +47,22 @@ def repro(
     target: typing.List[str] = typer.Option(None, help=Help.target),
     leave: bool = typer.Option(True, help=Help.leave),
     detach: bool = typer.Option(False, "--detach", "-d", help=Help.detach),
+    config: str = typer.Option(None, help=Help.config),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     if detach:
         cmd = ["dask4dvc", "repro"]
         if address is not None:
             cmd += ["--address", address]
+        if config is not None:
+            cmd += ["--config", config]
         _ = subprocess.Popen(cmd, start_new_session=True)
         return
+
+    if config is not None:
+        assert address is None, "Can not use address and config file"
+        address = utils.dask.get_cluster_from_config(config)
+
     with dask.distributed.Client(address) as client:
         log.info(client)
         result = client.submit(
