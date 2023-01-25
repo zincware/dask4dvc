@@ -3,6 +3,7 @@
 import importlib.metadata
 import logging
 import shutil
+import subprocess
 import typing
 
 import dask.distributed
@@ -32,6 +33,10 @@ class Help:
         " unexpected behavior."
     )
     target: str = "Names of the stage to reproduce"
+    detach: str = (
+        "Run the process in detached mode (Ctrl + C will not close 'dask4dvc' in the"
+        " background)."
+    )
 
 
 @app.command()
@@ -40,8 +45,15 @@ def repro(
     option: typing.List[str] = typer.Option(None, help=Help.option),
     target: typing.List[str] = typer.Option(None, help=Help.target),
     leave: bool = typer.Option(True, help=Help.leave),
+    detach: bool = typer.Option(False, "--detach", "-d", help=Help.detach),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
+    if detach:
+        cmd = ["dask4dvc", "repro"]
+        if address is not None:
+            cmd += ["--address", address]
+        _ = subprocess.Popen(cmd, start_new_session=True)
+        return
     with dask.distributed.Client(address) as client:
         log.info(client)
         result = client.submit(
