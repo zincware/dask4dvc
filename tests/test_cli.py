@@ -14,8 +14,8 @@ runner = CliRunner()
     (
         ["repro"],
         ["repro", "--option", "--force"],
-        ["repro", "--target", "InputToOutput"],
-        ["repro", "--target", "InputToOutput", "--option", "--force"],
+        ["repro", "InputToOutput"],
+        ["repro", "InputToOutput", "--option", "--force"],
     ),
 )
 def test_repro(single_node_repo: tuple, cmd: list) -> None:

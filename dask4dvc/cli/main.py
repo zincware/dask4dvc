@@ -32,7 +32,7 @@ class Help:
         " --option=--downstream'. Notice that some options like '--force' might show"
         " unexpected behavior."
     )
-    target: str = "Names of the stage to reproduce"
+    target: str = "Names of the stage to reproduce. Leave empty to run all stages."
     detach: str = (
         "Run the process in detached mode (Ctrl + C will not close 'dask4dvc' in the"
         " background)."
@@ -44,10 +44,10 @@ class Help:
 def repro(
     address: str = typer.Option(None, help=Help.address),
     option: typing.List[str] = typer.Option(None, help=Help.option),
-    target: typing.List[str] = typer.Option(None, help=Help.target),
     leave: bool = typer.Option(True, help=Help.leave),
     detach: bool = typer.Option(False, "--detach", "-d", help=Help.detach),
     config: str = typer.Option(None, help=Help.config),
+    target: list[str] = typer.Argument(None, help=Help.target, show_default=False),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     if detach:
