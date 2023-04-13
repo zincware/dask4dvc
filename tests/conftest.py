@@ -7,14 +7,17 @@ import git
 import pytest
 import znlib
 import zntrack
+import dvc.cli
 
 import dask4dvc.utils.git
 
 
 def create_dvc_repo() -> None:
     """Git and DVC init."""
-    subprocess.check_call(["git", "init"])
-    subprocess.check_call(["dvc", "init"])
+    git.Repo.init()
+    assert dvc.cli.main(["init"]) == 0
+    # subprocess.check_call(["git", "init"])
+    # subprocess.check_call(["dvc", "init"])
 
 
 @pytest.fixture

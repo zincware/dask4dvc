@@ -16,7 +16,7 @@ dask = "^2022.7.1"
 distributed = "^2022.7.1"
 dask-jobqueue = "^0.8.1"
 dvc = "^2.34.3"
-typer = "^0.6.1"
+typer = "^0.7.0"
 bokeh = "^2"
 # for bokeh see https://distributed.dask.org/en/stable/changelog.html#v2022-11-1
 
@@ -32,10 +32,11 @@ pytest = "^7.1.2"
 pytest-xdist = "^2.5.0"
 coverage = "^6.4.2"
 pre-commit = "^2.20.0"
-zntrack = {git = "https://github.com/zincware/ZnTrack.git"}
+zntrack = "^0.4.0"	
 pylint = "^2.15.5"
 znlib = {extras = ["zntrack"], version = "^0.1.0"}
 
+# TODO remove znlib here!
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
