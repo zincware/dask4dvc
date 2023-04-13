@@ -57,6 +57,7 @@ def repro(
         if config is not None:
             cmd += ["--config", config]
         _ = subprocess.Popen(cmd, start_new_session=True)
+        # TODO add all kwargs!
         return
 
     if config is not None:
@@ -93,12 +94,31 @@ def run(
         "--delete",
         help="Remove the temporary branches and directories",
     ),
+    detach: str = (
+        "Run the process in detached mode (Ctrl + C will not close 'dask4dvc' in the"
+        " background)."
+    ),
+    config: str = typer.Option(None, help=Help.config),
 ) -> None:
     """Replicate 'dvc exp run --run-all' command using dask.
 
     This will run the available experiments in parallel using dask.
     When finished, it will load the experiments using 'dvc exp run --run-all'.
     """
+    if config is not None:
+        assert address is None, "Can not use address and config file"
+        address = utils.dask.get_cluster_from_config(config)
+    
+    if detach:
+        cmd = ["dask4dvc", "run"]
+        if address is not None:
+            cmd += ["--address", address]
+        if config is not None:
+            cmd += ["--config", config]
+        # TODO add all kwargs!
+        _ = subprocess.Popen(cmd, start_new_session=True)
+        return
+    
     with methods.get_experiment_repos(delete=delete) as repos:
         with dask.distributed.Client(address) as client:
             log.info(client)
