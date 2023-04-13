@@ -3,6 +3,7 @@ import os
 import pathlib
 import subprocess
 
+import dvc.cli
 import git
 import pytest
 import znlib
@@ -13,8 +14,8 @@ import dask4dvc.utils.git
 
 def create_dvc_repo() -> None:
     """Git and DVC init."""
-    subprocess.check_call(["git", "init"])
-    subprocess.check_call(["dvc", "init"])
+    git.Repo.init()
+    assert dvc.cli.main(["init"]) == 0
 
 
 @pytest.fixture
