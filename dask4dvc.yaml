@@ -1,4 +1,0 @@
-default:
-  PBSCluster:
-    cores: 1
-    memory: 1GB

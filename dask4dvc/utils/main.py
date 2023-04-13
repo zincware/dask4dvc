@@ -9,11 +9,14 @@ log = logging.getLogger(__name__)
 
 
 def timeit(func: typing.Callable) -> typing.Callable:
-    """Timeit decorator for benchmarking."""
+    """Timeit decorator for benchmarking.
+
+    # TODO remove and replace with proper benchmarking / profiling
+    """
 
     @functools.wraps(func)
     def wrapper(*args: tuple, **kwargs: dict) -> typing.Any:
-        """Wrapper for timeit."""
+        """Wrap to time the function."""
         start_time = time.time()
         result = func(*args, **kwargs)
         stop_time = time.time()

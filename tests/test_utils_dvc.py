@@ -1,4 +1,5 @@
 """Test the 'dask4dvc' CLI."""
+import os
 import pathlib
 
 import dask_jobqueue
@@ -30,6 +31,8 @@ def test_repro(single_node_repo: tuple, targets: list, options: list) -> None:
 
 def test_dask_get_cluster_from_config(tmp_path: pathlib.Path) -> None:
     """Test 'dask4dvc.utils.dask.get_cluster_from_config'."""
+    os.chdir(tmp_path)
+
     file = pathlib.Path("dask4dvc.yaml")
     config = {"default": {"PBSCluster": {"cores": 1, "memory": "1GB"}}}
     file.write_text(yaml.safe_dump(config))
