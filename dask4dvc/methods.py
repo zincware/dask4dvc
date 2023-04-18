@@ -115,6 +115,7 @@ def submit_stage(name: str, *args: tuple) -> str:
     import dvc.stage
 
     repo = dvc.repo.Repo()
+    # TODO split run / and commit such that you only try to commit and not rerun everything
     trials = 10
     for _ in range(trials):
         with contextlib.suppress(
