@@ -50,6 +50,8 @@ def repro(
     target: list[str] = typer.Argument(None, help=Help.target, show_default=False),
     parallel: bool = typer.Option(True, help=Help.parallel),
     max_workers: int = typer.Option(None, help="Maximum number of workers to use."),
+    retries: int = typer.Option(10, help="Number of retries for each stage."),
+    retry_delay: float = typer.Option(5.0, help="Delay between retries."),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     if detach:
@@ -61,6 +63,9 @@ def repro(
         _ = subprocess.Popen(cmd, start_new_session=True)
         # TODO add all kwargs!
         return
+
+    utils.CONFIG.retries = retries
+    utils.CONFIG.retry_delay = retry_delay
 
     if config is not None:
         assert address is None, "Can not use address and config file"

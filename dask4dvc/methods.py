@@ -12,6 +12,8 @@ import git
 import tqdm
 import typer
 import znflow
+import random
+import time
 
 from dask4dvc import utils
 
@@ -115,18 +117,21 @@ def submit_stage(name: str, *args: tuple) -> str:
     import dvc.stage
 
     repo = dvc.repo.Repo()
-    # TODO split run / and commit such that you only try to commit and not rerun everything
-    trials = 10
-    for _ in range(trials):
+    # TODO split run / and commit such that you only
+    # try to commit and not rerun everything
+    for _ in range(utils.CONFIG.retries):
         with contextlib.suppress(
             dvc.lock.LockError,
             dvc.exceptions.ReproductionError,
             dvc.exceptions.PrettyDvcException,
         ):
+            time.sleep(random.random() * utils.CONFIG.retry_delay)
             repo.reproduce(name, single_item=True)
             break
     else:
-        raise dvc.lock.LockError(f"Could not acquire lock after {trials} tries.")
+        raise dvc.lock.LockError(
+            f"Could not acquire lock after {utils.CONFIG.retries} tries."
+        )
 
     return name
 
