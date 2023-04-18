@@ -48,6 +48,7 @@ def repro(
     detach: bool = typer.Option(False, "--detach", "-d", help=Help.detach),
     config: str = typer.Option(None, help=Help.config),
     target: list[str] = typer.Argument(None, help=Help.target, show_default=False),
+    parallel: bool = typer.Option(True, help=Help.parallel),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     if detach:
@@ -66,9 +67,12 @@ def repro(
 
     with dask.distributed.Client(address) as client:
         log.info(client)
-        result = client.submit(
-            utils.dvc.repro, targets=target, options=option, pure=False
-        )
+        if parallel:
+            result = methods.parallel_submit(client)
+        else:
+            result = client.submit(
+                utils.dvc.repro, targets=target, options=option, pure=False
+            )
 
         utils.dask.wait_for_futures(result)
         if not leave:

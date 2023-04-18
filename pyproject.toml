@@ -19,6 +19,7 @@ dvc = "^2.34.3"
 typer = "^0.7.0"
 bokeh = "^2"
 # for bokeh see https://distributed.dask.org/en/stable/changelog.html#v2022-11-1
+znflow = "^0.1.11"
 
 [tool.poetry.scripts]
 dask4dvc = 'dask4dvc.cli.main:app'
