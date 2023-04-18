@@ -4,9 +4,14 @@ import contextlib
 import pathlib
 import typing
 
+import dask.distributed
+import dvc.lock
+import dvc.exceptions
+import dvc.repo
 import git
 import tqdm
 import typer
+import znflow
 
 from dask4dvc import utils
 
@@ -101,3 +106,49 @@ def get_experiment_repos(delete: list) -> typing.Dict[str, git.Repo]:
             git.Repo(".").delete_head(*list(repos), force=True)
         if "temp" in delete:
             utils.main.remove_paths([clone.working_dir for clone in repos.values()])
+
+
+@znflow.nodify
+def submit_stage(name: str, *args: tuple) -> str:
+    """Submit a stage to the Dask cluster."""
+    import dvc.repo
+    import dvc.stage
+
+    repo = dvc.repo.Repo()
+    # TODO split run / and commit such that you only try to commit and not rerun everything
+    trials = 10
+    for _ in range(trials):
+        with contextlib.suppress(
+            dvc.lock.LockError,
+            dvc.exceptions.ReproductionError,
+            dvc.exceptions.PrettyDvcException,
+        ):
+            repo.reproduce(name, single_item=True)
+            break
+    else:
+        raise dvc.lock.LockError(f"Could not acquire lock after {trials} tries.")
+
+    return name
+
+
+def parallel_submit(
+    client: dask.distributed.Client,
+) -> typing.Dict[str, dask.distributed.Future]:
+    """Submit all stages to the Dask cluster."""
+    graph = znflow.DiGraph()
+    mapping = {}
+    repo = dvc.repo.Repo()
+
+    for node in repo.index.graph.nodes:
+        successors = [
+            mapping[successor] for successor in repo.index.graph.successors(node)
+        ]
+        with graph:
+            mapping[node] = submit_stage(
+                node.name,
+                successors,
+            )
+    deployment = znflow.deployment.Deployment(graph=graph, client=client)
+    deployment.submit_graph()
+
+    return deployment.results
