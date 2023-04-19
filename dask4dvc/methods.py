@@ -69,7 +69,6 @@ def _load_run_cache(repo: dvc.repo.Repo, stage: dvc.stage.Stage) -> None:
             )
 
 
-@znflow.nodify
 def submit_stage(name: str, successors: list) -> str:
     """Submit a stage to the Dask cluster."""
     repo = dvc.repo.Repo()
@@ -113,11 +112,8 @@ def parallel_submit(
             mapping[successor] for successor in repo.index.graph.successors(node)
         ]
         with graph:
-            mapping[node] = submit_stage(
-                node.name,
-                successors=successors,
+            mapping[node] = client.submit(
+                submit_stage, node.name, successors=successors, pure=False
             )
-    deployment = znflow.deployment.Deployment(graph=graph, client=client)
-    deployment.submit_graph()
 
-    return deployment.results
+    return mapping
