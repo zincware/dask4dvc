@@ -150,7 +150,13 @@ def _run_locked_cmd(
 
 
 def _load_run_cache(repo: dvc.repo.Repo, stage: dvc.stage.Stage) -> None:
-    """Load the run cache for the given stage."""
+    """Load the run cache for the given stage.
+    
+    Raises
+    ------
+    RunCacheNotFoundError:
+        if the stage is not cached.
+    """
     with dvc.repo.lock_repo(repo):
         with repo.scm_context():
             repo.stage_cache.restore(stage=stage)
