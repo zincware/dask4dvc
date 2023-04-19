@@ -10,7 +10,6 @@ import dvc.repo
 import dvc.utils.strictyaml
 import dvc.stage
 from dvc.stage.cache import RunCacheNotFoundError
-import znflow
 import random
 import time
 import subprocess
@@ -103,7 +102,6 @@ def parallel_submit(
     client: dask.distributed.Client,
 ) -> typing.Dict[str, dask.distributed.Future]:
     """Submit all stages to the Dask cluster."""
-    graph = znflow.DiGraph()
     mapping = {}
     repo = dvc.repo.Repo()
 
@@ -111,9 +109,9 @@ def parallel_submit(
         successors = [
             mapping[successor] for successor in repo.index.graph.successors(node)
         ]
-        with graph:
-            mapping[node] = client.submit(
-                submit_stage, node.name, successors=successors, pure=False
-            )
+
+        mapping[node] = client.submit(
+            submit_stage, node.name, successors=successors, pure=False
+        )
 
     return mapping
