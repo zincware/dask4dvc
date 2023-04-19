@@ -9,10 +9,30 @@ import dvc.exceptions
 import dvc.repo
 import dvc.repo.experiments.queue.celery
 import git
+import contextlib
+import io
 
 from dask4dvc.utils.config import CONFIG
 
 log = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def capture_dvc_logging_output() -> io.StringIO:
+    """Capture the output of the 'dvc' logger.
+
+    >>> with capture_dvc_logging_output() as log_capture_string:
+    >>>     repo = dvc.repo.Repo()
+    >>>     repo.reproduce("AddData", dry=True)
+    >>> log_capture_string.getvalue()
+    """
+    dvc_logging = logging.getLogger("dvc")
+    log_capture_string = io.StringIO()
+    handler = logging.StreamHandler(log_capture_string)
+    handler.setLevel(logging.DEBUG)
+    dvc_logging.addHandler(handler)
+    yield log_capture_string
+    dvc_logging.removeHandler(handler)
 
 
 def repro(

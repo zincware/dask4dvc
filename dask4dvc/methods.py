@@ -8,12 +8,14 @@ import dask.distributed
 import dvc.lock
 import dvc.exceptions
 import dvc.repo
+import dvc.utils.strictyaml
 import git
 import tqdm
 import typer
 import znflow
 import random
 import time
+import subprocess
 
 from dask4dvc import utils
 
@@ -110,28 +112,30 @@ def get_experiment_repos(delete: list) -> typing.Dict[str, git.Repo]:
             utils.main.remove_paths([clone.working_dir for clone in repos.values()])
 
 
-@znflow.nodify
-def submit_stage(name: str, *args: tuple) -> str:
-    """Submit a stage to the Dask cluster."""
-    import dvc.repo
-    import dvc.stage
-
-    repo = dvc.repo.Repo()
-    # TODO split run / and commit such that you only
-    # try to commit and not rerun everything
-    for _ in range(utils.CONFIG.retries):
+def _run_locked_cmd(repo, func, *args, **kwargs):
+    while repo.lock.is_locked:
+        time.sleep(random.random())
+    while True:
         with contextlib.suppress(
-            dvc.lock.LockError,
-            dvc.exceptions.ReproductionError,
-            dvc.exceptions.PrettyDvcException,
+            dvc.lock.LockError, dvc.utils.strictyaml.YAMLValidationError
         ):
-            time.sleep(random.random() * utils.CONFIG.retry_delay)
-            repo.reproduce(name, single_item=True)
+            func(*args, **kwargs)
             break
+
+
+@znflow.nodify
+def submit_stage(name: str, successors: list) -> str:
+    """Submit a stage to the Dask cluster."""
+    repo = dvc.repo.Repo()
+    with utils.dvc.capture_dvc_logging_output() as output:
+        _run_locked_cmd(repo, repo.reproduce, name, dry=True)
+    if f"Stage '{name}' didn't change, skipping" in output.getvalue():
+        _run_locked_cmd(repo, repo.checkout, name)
     else:
-        raise dvc.lock.LockError(
-            f"Could not acquire lock after {utils.CONFIG.retries} tries."
-        )
+        stage = repo.stage.get_target(name)
+        # TODO DVCFileSystem can raise "YAMLValidationError: './dvc.lock'"
+        subprocess.check_call(stage.cmd, shell=True)
+        _run_locked_cmd(repo, repo.commit, name, force=True)
 
     return name
 
@@ -151,7 +155,7 @@ def parallel_submit(
         with graph:
             mapping[node] = submit_stage(
                 node.name,
-                successors,
+                successors=successors,
             )
     deployment = znflow.deployment.Deployment(graph=graph, client=client)
     deployment.submit_graph()
