@@ -149,6 +149,17 @@ def _run_locked_cmd(
     raise err
 
 
+def _load_run_cache(repo: dvc.repo.Repo, stage: dvc.stage.Stage) -> None:
+    """Load the run cache for the given stage."""
+    with dvc.repo.lock_repo(repo):
+        with repo.scm_context():
+            repo.stage_cache.restore(stage=stage)
+            log.info(
+                f"Stage '{stage.addressing}' is cached - skipping run, checking out"
+                " outputs "
+            )
+
+
 @znflow.nodify
 def submit_stage(name: str, successors: list) -> str:
     """Submit a stage to the Dask cluster."""
@@ -166,19 +177,10 @@ def submit_stage(name: str, successors: list) -> str:
             # we use single-item, so it should never be more than 1
             raise ValueError("Something went wrong")
 
-        def _load_run_cache(stage: dvc.stage.Stage) -> None:
-            """Load the run cache for the given stage."""
-            with dvc.repo.lock_repo(repo):
-                with repo.scm_context():
-                    repo.stage_cache.restore(stage=stage)
-                    log.info(
-                        f"Stage '{name}' is cached - skipping run, checking out outputs "
-                    )
-
         for stage in stages:
             try:
                 # check if the stage is already in the run cache
-                _run_locked_cmd(repo, _load_run_cache, stages[0])
+                _run_locked_cmd(repo, _load_run_cache, repo, stages[0])
             except RunCacheNotFoundError:
                 # if not, run the stage
                 log.info(f"Running stage '{name}': \n > {stage.cmd}")
