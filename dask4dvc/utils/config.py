@@ -8,14 +8,10 @@ class Config:
 
     Attributes
     ----------
-    tqdm_threshold: int
-        The minimum number of experiments to show a tqdm bar.
-    use_dvc_api: bool
-        Instead of subprocess calls use the internal DVC API.
+    retries : int
+        number of retries for acquiring lock
     """
 
-    tqdm_threshold: int = 10
-    use_dvc_api: bool = True
     retries: int = 1000
 
 

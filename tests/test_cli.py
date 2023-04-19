@@ -3,44 +3,45 @@ import pytest
 from dask.distributed import LocalCluster
 from typer.testing import CliRunner
 
-import dask4dvc.utils.dvc
 from dask4dvc.cli.main import app
+import random
 
 runner = CliRunner()
 
 
+@pytest.mark.parametrize("repo_fixture", ("single_node_repo", "multi_node_repo"))
 @pytest.mark.parametrize(
     "cmd",
-    (
-        ["repro"],
-        ["repro", "--option", "--force"],
-        ["repro", "InputToOutput"],
-        ["repro", "InputToOutput", "--option", "--force"],
-    ),
+    (["repro"],),
 )
-def test_repro(single_node_repo: tuple, cmd: list) -> None:
+def test_repro(request: pytest.FixtureRequest, cmd: list, repo_fixture: str) -> None:
     """Test 'dask4dvc repro'."""
-    _, node = single_node_repo
+    _, nodes = request.getfixturevalue(repo_fixture)
 
     result = runner.invoke(app, cmd)
 
     assert result.exit_code == 0
-    node = node.load()
-    assert node.outputs == 3.1415
+    for node in nodes:
+        node = node.load()
+        assert node.outputs == 3.1415
 
 
-def test_repro_with_address(single_node_repo: tuple) -> None:
+@pytest.mark.parametrize("repo_fixture", ("single_node_repo", "multi_node_repo"))
+def test_repro_with_address(request: pytest.FixtureRequest, repo_fixture: str) -> None:
     """The with a given dask LocalCluster."""
-    _, node = single_node_repo
+    _, nodes = request.getfixturevalue(repo_fixture)
 
-    cluster = LocalCluster(scheduler_port=31415)
+    port = random.randrange(start=5000, stop=5500)
+
+    cluster = LocalCluster(scheduler_port=port)
     cluster.adapt()
 
-    result = runner.invoke(app, ["repro", "--address", "127.0.0.1:31415"])
+    result = runner.invoke(app, ["repro", "--address", f"127.0.0.1:{port}"])
 
     assert result.exit_code == 0
-    node = node.load()
-    assert node.outputs == 3.1415
+    for node in nodes:
+        node = node.load()
+        assert node.outputs == 3.1415
 
 
 def test_version() -> None:
@@ -48,16 +49,3 @@ def test_version() -> None:
     result = runner.invoke(app, ["--version"])
 
     assert result.exit_code == 0
-
-
-def test_run(multi_experiments_repo: tuple) -> None:
-    """Test 'dask4dvc run'."""
-    assert len(dask4dvc.utils.dvc.exp_show_queued()) == 3
-    result = runner.invoke(app, ["run"])
-    assert result.exit_code == 0
-    assert len(dask4dvc.utils.dvc.exp_show_queued()) == 0
-
-    # Try to run again
-    result = runner.invoke(app, ["run"])
-    assert result.exit_code == 0
-    assert result.stdout.startswith("Skipping: no experiments were found in the queue.")
