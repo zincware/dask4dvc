@@ -112,30 +112,51 @@ def get_experiment_repos(delete: list) -> typing.Dict[str, git.Repo]:
             utils.main.remove_paths([clone.working_dir for clone in repos.values()])
 
 
-def _run_locked_cmd(repo, func, *args, **kwargs):
-    while repo.lock.is_locked:
-        time.sleep(random.random())
-    while True:
+def _run_locked_cmd(
+    repo: dvc.repo.Repo, func: typing.Callable, *args: tuple, **kwargs: dict
+) -> typing.Any:
+    """Retry running a DVC command until the lock is released.
+
+    Parameters
+    ----------
+    repo: dvc.repo.Repo
+        The DVC repository.
+    func: callable
+        The DVC command to run. e.g. 'repo.reproduce'
+    *args: list
+        The positional arguments for the command.
+    **kwargs: dict
+        The keyword arguments for the command.
+
+
+    Returns
+    -------
+    typing.Any: the return value of the command.
+    """
+    for _ in range(utils.CONFIG.retries):
         with contextlib.suppress(
             dvc.lock.LockError, dvc.utils.strictyaml.YAMLValidationError
         ):
-            func(*args, **kwargs)
-            break
+            while repo.lock.is_locked:
+                time.sleep(random.random())
+            return func(*args, **kwargs)
 
 
 @znflow.nodify
 def submit_stage(name: str, successors: list) -> str:
     """Submit a stage to the Dask cluster."""
     repo = dvc.repo.Repo()
-    with utils.dvc.capture_dvc_logging_output() as output:
-        _run_locked_cmd(repo, repo.reproduce, name, dry=True)
-    if f"Stage '{name}' didn't change, skipping" in output.getvalue():
+    # dvc reproduce returns the stages to be reproduced
+    stages = _run_locked_cmd(repo, repo.reproduce, name, dry=True, single_item=True)
+
+    if len(stages) == 0:
         _run_locked_cmd(repo, repo.checkout, name)
     else:
-        stage = repo.stage.get_target(name)
-        # TODO DVCFileSystem can raise "YAMLValidationError: './dvc.lock'"
-        subprocess.check_call(stage.cmd, shell=True)
-        _run_locked_cmd(repo, repo.commit, name, force=True)
+        if len(stages) > 1:
+            raise ValueError("Something went wrong")
+        for stage in stages:
+            subprocess.check_call(stage.cmd, shell=True)
+            _run_locked_cmd(repo, repo.commit, name, force=True)
 
     return name
 

@@ -17,7 +17,6 @@ class Config:
     tqdm_threshold: int = 10
     use_dvc_api: bool = True
     retries: int = 10
-    retry_delay: int = 10
 
 
 CONFIG = Config()
