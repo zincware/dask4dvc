@@ -11,6 +11,7 @@ import typer
 
 from dask4dvc import methods, utils
 
+
 app = typer.Typer()
 
 log = logging.getLogger(__name__)

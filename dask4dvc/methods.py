@@ -3,12 +3,15 @@
 import contextlib
 import pathlib
 import typing
+import logging
 
 import dask.distributed
 import dvc.lock
 import dvc.exceptions
 import dvc.repo
 import dvc.utils.strictyaml
+import dvc.stage
+from dvc.stage.cache import RunCacheNotFoundError
 import git
 import tqdm
 import typer
@@ -18,6 +21,8 @@ import time
 import subprocess
 
 from dask4dvc import utils
+
+log = logging.getLogger(__name__)
 
 
 @utils.main.timeit
@@ -133,30 +138,53 @@ def _run_locked_cmd(
     -------
     typing.Any: the return value of the command.
     """
+    err = ValueError("Something went wrong")
     for _ in range(utils.CONFIG.retries):
-        with contextlib.suppress(
-            dvc.lock.LockError, dvc.utils.strictyaml.YAMLValidationError
-        ):
+        try:
             while repo.lock.is_locked:
-                time.sleep(random.random())
+                time.sleep(random.random() * 5)  # between 0 and 5 seconds
             return func(*args, **kwargs)
+        except (dvc.lock.LockError, dvc.utils.strictyaml.YAMLValidationError) as err:
+            log.debug(err)
+    raise err
 
 
 @znflow.nodify
 def submit_stage(name: str, successors: list) -> str:
     """Submit a stage to the Dask cluster."""
     repo = dvc.repo.Repo()
-    # dvc reproduce returns the stages to be reproduced
+
+    # dvc reproduce returns the stages that are not checked out
     stages = _run_locked_cmd(repo, repo.reproduce, name, dry=True, single_item=True)
 
     if len(stages) == 0:
-        _run_locked_cmd(repo, repo.checkout, name)
+        # if the stage is already checked out, we don't need to run it
+        log.info(f"Stage '{name}' didn't change, skipping")
+
     else:
         if len(stages) > 1:
+            # we use single-item, so it should never be more than 1
             raise ValueError("Something went wrong")
+
+        def _load_run_cache(stage: dvc.stage.Stage) -> None:
+            """Load the run cache for the given stage."""
+            with dvc.repo.lock_repo(repo):
+                with repo.scm_context():
+                    repo.stage_cache.restore(stage=stage)
+                    log.info(
+                        f"Stage '{name}' is cached - skipping run, checking out outputs "
+                    )
+
         for stage in stages:
-            subprocess.check_call(stage.cmd, shell=True)
-            _run_locked_cmd(repo, repo.commit, name, force=True)
+            try:
+                # check if the stage is already in the run cache
+                _run_locked_cmd(repo, _load_run_cache, stages[0])
+            except RunCacheNotFoundError:
+                # if not, run the stage
+                log.info(f"Running stage '{name}': \n > {stage.cmd}")
+                subprocess.check_call(stage.cmd, shell=True)
+                # add the stage to the run cache
+                _run_locked_cmd(repo, repo.commit, name, force=True)
 
     return name
 
