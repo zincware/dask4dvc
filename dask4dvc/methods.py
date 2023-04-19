@@ -3,17 +3,26 @@
 import contextlib
 import pathlib
 import typing
+import logging
 
 import dask.distributed
 import dvc.lock
 import dvc.exceptions
 import dvc.repo
+import dvc.utils.strictyaml
+import dvc.stage
+from dvc.stage.cache import RunCacheNotFoundError
 import git
 import tqdm
 import typer
 import znflow
+import random
+import time
+import subprocess
 
 from dask4dvc import utils
+
+log = logging.getLogger(__name__)
 
 
 @utils.main.timeit
@@ -108,25 +117,82 @@ def get_experiment_repos(delete: list) -> typing.Dict[str, git.Repo]:
             utils.main.remove_paths([clone.working_dir for clone in repos.values()])
 
 
-@znflow.nodify
-def submit_stage(name: str, *args: tuple) -> str:
-    """Submit a stage to the Dask cluster."""
-    import dvc.repo
-    import dvc.stage
+def _run_locked_cmd(
+    repo: dvc.repo.Repo, func: typing.Callable, *args: tuple, **kwargs: dict
+) -> typing.Any:
+    """Retry running a DVC command until the lock is released.
 
+    Parameters
+    ----------
+    repo: dvc.repo.Repo
+        The DVC repository.
+    func: callable
+        The DVC command to run. e.g. 'repo.reproduce'
+    *args: list
+        The positional arguments for the command.
+    **kwargs: dict
+        The keyword arguments for the command.
+
+
+    Returns
+    -------
+    typing.Any: the return value of the command.
+    """
+    err = ValueError("Something went wrong")
+    for _ in range(utils.CONFIG.retries):
+        try:
+            while repo.lock.is_locked:
+                time.sleep(random.random() * 5)  # between 0 and 5 seconds
+            return func(*args, **kwargs)
+        except (dvc.lock.LockError, dvc.utils.strictyaml.YAMLValidationError) as err:
+            log.debug(err)
+    raise err
+
+
+def _load_run_cache(repo: dvc.repo.Repo, stage: dvc.stage.Stage) -> None:
+    """Load the run cache for the given stage.
+    
+    Raises
+    ------
+    RunCacheNotFoundError:
+        if the stage is not cached.
+    """
+    with dvc.repo.lock_repo(repo):
+        with repo.scm_context():
+            repo.stage_cache.restore(stage=stage)
+            log.info(
+                f"Stage '{stage.addressing}' is cached - skipping run, checking out"
+                " outputs "
+            )
+
+
+@znflow.nodify
+def submit_stage(name: str, successors: list) -> str:
+    """Submit a stage to the Dask cluster."""
     repo = dvc.repo.Repo()
-    # TODO split run / and commit such that you only try to commit and not rerun everything
-    trials = 10
-    for _ in range(trials):
-        with contextlib.suppress(
-            dvc.lock.LockError,
-            dvc.exceptions.ReproductionError,
-            dvc.exceptions.PrettyDvcException,
-        ):
-            repo.reproduce(name, single_item=True)
-            break
+
+    # dvc reproduce returns the stages that are not checked out
+    stages = _run_locked_cmd(repo, repo.reproduce, name, dry=True, single_item=True)
+
+    if len(stages) == 0:
+        # if the stage is already checked out, we don't need to run it
+        log.info(f"Stage '{name}' didn't change, skipping")
+
     else:
-        raise dvc.lock.LockError(f"Could not acquire lock after {trials} tries.")
+        if len(stages) > 1:
+            # we use single-item, so it should never be more than 1
+            raise ValueError("Something went wrong")
+
+        for stage in stages:
+            try:
+                # check if the stage is already in the run cache
+                _run_locked_cmd(repo, _load_run_cache, repo, stages[0])
+            except RunCacheNotFoundError:
+                # if not, run the stage
+                log.info(f"Running stage '{name}': \n > {stage.cmd}")
+                subprocess.check_call(stage.cmd, shell=True)
+                # add the stage to the run cache
+                _run_locked_cmd(repo, repo.commit, name, force=True)
 
     return name
 
@@ -146,7 +212,7 @@ def parallel_submit(
         with graph:
             mapping[node] = submit_stage(
                 node.name,
-                successors,
+                successors=successors,
             )
     deployment = znflow.deployment.Deployment(graph=graph, client=client)
     deployment.submit_graph()

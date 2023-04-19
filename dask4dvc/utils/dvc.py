@@ -1,6 +1,5 @@
 """Utils that are related to 'DVC'."""
 import json
-import logging
 import re
 import subprocess
 import typing
@@ -11,8 +10,6 @@ import dvc.repo.experiments.queue.celery
 import git
 
 from dask4dvc.utils.config import CONFIG
-
-log = logging.getLogger(__name__)
 
 
 def repro(

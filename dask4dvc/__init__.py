@@ -2,6 +2,7 @@
 import importlib.metadata
 import logging
 import sys
+import dvc.logger
 
 from dask4dvc import cli, methods, utils
 
@@ -20,3 +21,6 @@ channel.setLevel(logging.INFO)
 channel.setFormatter(formatter)
 
 log.addHandler(channel)
+
+# I haven't found a way of temporarily disabling the DVC logger
+dvc.logger.set_loggers_level(logging.CRITICAL)
