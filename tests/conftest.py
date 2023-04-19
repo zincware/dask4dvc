@@ -1,15 +1,12 @@
 """global pytest fixtures."""
 import os
 import pathlib
-import subprocess
-
+import typing
 import dvc.cli
 import git
 import pytest
 import znlib
 import zntrack
-
-import dask4dvc.utils.git
 
 
 def create_dvc_repo() -> None:
@@ -28,29 +25,28 @@ def empty_repo(tmp_path: pathlib.Path) -> pathlib.Path:
 
 
 @pytest.fixture
-def single_node_repo(empty_repo: pathlib.Path) -> (pathlib.Path, zntrack.Node):
+def single_node_repo(
+    empty_repo: pathlib.Path,
+) -> typing.Tuple[pathlib.Path, typing.List[zntrack.Node]]:
     """DVC repro with a single node."""
     node = znlib.examples.InputToOutput(inputs=3.1415)
     node.write_graph()
 
-    return empty_repo, node
+    return empty_repo, [node]
 
 
 @pytest.fixture
-def multi_experiments_repo(empty_repo: pathlib.Path) -> (pathlib.Path, zntrack.Node):
-    """Create multiple queued experiments."""
-    n_exp = 3
-
+def multi_node_repo(
+    empty_repo: pathlib.Path,
+) -> typing.Tuple[pathlib.Path, typing.List[zntrack.Node]]:
+    """DVC repro with a single node."""
     node = znlib.examples.InputToOutput(inputs=3.1415)
-    node.write_graph(run=True)
-    dask4dvc.utils.git.update_gitignore(ignore=".dask4dvc")
+    node.write_graph()
 
-    repo = git.Repo()
-    repo.git.add(all=True)
-    repo.index.commit("Initial commit.")
+    node2 = znlib.examples.InputToOutput(inputs=node @ "outputs", name="node2")
+    node2.write_graph()
 
-    subprocess.check_call(
-        ["dvc", "exp", "run", "--queue", "-S", f"InputToOutput.inputs=range({n_exp})"]
-    )
+    node3 = znlib.examples.InputToOutput(inputs=node2 @ "outputs", name="node3")
+    node3.write_graph()
 
-    return empty_repo, node
+    return empty_repo, [node, node2, node3]

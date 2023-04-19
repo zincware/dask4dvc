@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dask4dvc"
-version = "0.1.4"
+version = "0.2.0"
 description = "Use dask to run the DVC graph"
 authors = ["zincwarecode <zincwarecode@gmail.com>"]
 license = "Apache-2.0"
@@ -15,11 +15,10 @@ python = "^3.8"
 dask = "^2022.7.1"
 distributed = "^2022.7.1"
 dask-jobqueue = "^0.8.1"
-dvc = "^2.34.3"
+dvc = "^2.54.0"
 typer = {extras = ["all"], version = "^0.7.0"}
 bokeh = "^2"
 # for bokeh see https://distributed.dask.org/en/stable/changelog.html#v2022-11-1
-znflow = "^0.1.11"
 
 [tool.poetry.scripts]
 dask4dvc = 'dask4dvc.cli.main:app'
