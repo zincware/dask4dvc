@@ -27,7 +27,10 @@ class Help:
     leave: str = "Ask before stopping the client"
     config: str = "path to config file, e.g. 'dask4dvc.yaml'"
     retries: str = "Number of retries to acquire dvc lock."
-    max_workers: str = "Maximum number of workers to use."
+    max_workers: str = (
+        "Maximum number of workers to use. Using '1' will be the same as 'dvc repro' but"
+        " slower."
+    )
 
 
 @app.command()
@@ -54,6 +57,16 @@ def repro(
         utils.dask.wait_for_futures(results)
         if not leave:
             utils.main.wait()
+
+
+@app.command()
+def run() -> None:
+    """Run DVC experiments in parallel using dask."""
+    typer.echo(
+        "'dask4dvc run' was removed due to instability. Latest version including this"
+        " feature is 'pip install dask4dvc==0.1.4'."
+    )
+    raise typer.Exit()
 
 
 def version_callback(value: bool) -> None:

@@ -7,11 +7,12 @@
 [DVC](dvc.org) provides tools for building and executing the computational graph locally through various methods. 
 The `dask4dvc` package combines [Dask Distributed](https://distributed.dask.org/) with DVC to make it easier to use with HPC managers like [Slurm](https://github.com/SchedMD/slurm).
 
+The `dask4dvc` package will try to run the DVC graph in parallel.
+
 ## Usage
 Dask4DVC provides a CLI similar to DVC.
 
 - `dvc repro` becomes `dask4dvc repro`.
-- `dvc exp run --run-all` becomes `dask4dvc run`.
 
 ### SLURM Cluster
 
@@ -33,3 +34,13 @@ cluster.adapt()
 ```
 
 with this setup you can then run `dask4dvc repro --address 127.0.0.1:31415` on the example port `31415`.
+
+You can also use config files with `dask4dvc repro --config myconfig.yaml`.
+
+```yaml
+default:
+  SGECluster:
+    queue: regular
+    cores: 10
+    memory: 16 GB
+```
