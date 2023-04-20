@@ -41,6 +41,7 @@ def repro(
     config: str = typer.Option(None, help=Help.config),
     max_workers: int = typer.Option(None, help=Help.max_workers),
     retries: int = typer.Option(10, help=Help.retries),
+    force: bool = typer.Option(False, help="use `dvc repro --force`"),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     utils.CONFIG.retries = retries
@@ -53,7 +54,7 @@ def repro(
         if max_workers is not None:
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
-        results = methods.parallel_submit(client, targets=targets)
+        results = methods.parallel_submit(client, targets=targets, force=force)
 
         utils.dask.wait_for_futures(results)
         if not leave:

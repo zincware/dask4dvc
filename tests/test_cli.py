@@ -5,6 +5,7 @@ from dask4dvc.cli.main import app
 import zntrack
 import pytest
 import pathlib
+import random
 
 runner = CliRunner()
 
@@ -29,6 +30,16 @@ class InputsToOutputs(zntrack.Node):
     def run(self) -> None:
         """ZnTrack run method."""
         self.output = self.inputs
+
+
+class RandomData(zntrack.Node):
+    """Create some random."""
+
+    output = zntrack.zn.outs()
+
+    def run(self) -> None:
+        """ZnTrack run method."""
+        self.output = random.random()
 
 
 def test_single_node_repro(repo_path: pathlib.Path) -> None:
@@ -81,3 +92,25 @@ def test_multi_node_repro_targets(repo_path: pathlib.Path) -> None:
         # TODO ZnTrack: should not require lazy for the error upton access
 
     assert node1.output == 3.1415
+
+
+def test_single_node_repro_force(repo_path: pathlib.Path) -> None:
+    """Test repro of a single node."""
+    with zntrack.Project() as project:
+        node = RandomData()
+    project.run(repro=False)
+    result = runner.invoke(app, ["repro"])
+    assert result.exit_code == 0
+    node.load(lazy=False)
+
+    result = runner.invoke(app, ["repro"])
+    assert result.exit_code == 0
+
+    node2 = RandomData.from_rev(lazy=False)
+    assert node2.output == node.output
+
+    result = runner.invoke(app, ["repro", "--force"])
+    assert result.exit_code == 0
+
+    node2 = RandomData.from_rev(lazy=False)
+    assert node2.output != node.output

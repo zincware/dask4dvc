@@ -1,5 +1,7 @@
 """Some general 'dask4dvc' methods."""
 
+
+import contextlib
 import typing
 import logging
 
@@ -68,12 +70,15 @@ def _load_run_cache(repo: dvc.repo.Repo, stage: dvc.stage.Stage) -> None:
             )
 
 
-def submit_stage(name: str, successors: list) -> str:
+def submit_stage(name: str, force: bool, successors: list) -> str:
     """Submit a stage to the Dask cluster."""
     repo = dvc.repo.Repo()
 
-    # dvc reproduce returns the stages that are not checked out
-    stages = _run_locked_cmd(repo, repo.reproduce, name, dry=True, single_item=True)
+    if force:
+        stages = [repo.stage.get_target(name)]
+    else:
+        # dvc reproduce returns the stages that are not checked out
+        stages = _run_locked_cmd(repo, repo.reproduce, name, dry=True, single_item=True)
 
     if len(stages) == 0:
         # if the stage is already checked out, we don't need to run it
@@ -85,21 +90,22 @@ def submit_stage(name: str, successors: list) -> str:
             raise ValueError("Something went wrong")
 
         for stage in stages:
-            try:
-                # check if the stage is already in the run cache
-                _run_locked_cmd(repo, _load_run_cache, repo, stages[0])
-            except RunCacheNotFoundError:
-                # if not, run the stage
-                log.info(f"Running stage '{name}': \n > {stage.cmd}")
-                subprocess.check_call(stage.cmd, shell=True)
-                # add the stage to the run cache
-                _run_locked_cmd(repo, repo.commit, name, force=True)
+            if not force:
+                with contextlib.suppress(RunCacheNotFoundError):
+                    # check if the stage is already in the run cache
+                    _run_locked_cmd(repo, _load_run_cache, repo, stages[0])
+                    return name
+            # if not, run the stage
+            log.info(f"Running stage '{name}': \n > {stage.cmd}")
+            subprocess.check_call(stage.cmd, shell=True)
+            # add the stage to the run cache
+            _run_locked_cmd(repo, repo.commit, name, force=True)
 
     return name
 
 
 def parallel_submit(
-    client: dask.distributed.Client, targets: list[str] = None
+    client: dask.distributed.Client, targets: list[str], force: bool
 ) -> typing.Dict[str, dask.distributed.Future]:
     """Submit all stages to the Dask cluster."""
     mapping = {}
@@ -130,7 +136,7 @@ def parallel_submit(
         ]
 
         mapping[node] = client.submit(
-            submit_stage, node.name, successors=successors, pure=False
+            submit_stage, node.name, force=force, successors=successors, pure=False
         )
 
     return mapping
