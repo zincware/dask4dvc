@@ -99,13 +99,32 @@ def submit_stage(name: str, successors: list) -> str:
 
 
 def parallel_submit(
-    client: dask.distributed.Client,
+    client: dask.distributed.Client, targets: list[str] = None
 ) -> typing.Dict[str, dask.distributed.Future]:
     """Submit all stages to the Dask cluster."""
     mapping = {}
     repo = dvc.repo.Repo()
 
-    for node in repo.index.graph.nodes:
+    if targets is None:
+        nodes = repo.index.graph.nodes
+    else:
+        nodes = []
+
+        def iter_target_successors(
+            target: dvc.stage.PipelineStage,
+        ) -> dvc.stage.PipelineStage:
+            for node in repo.index.graph.successors(target):
+                if node not in nodes:
+                    yield node
+                yield from iter_target_successors(node)
+
+        for target in targets:
+            pipeline_target = repo.stage.get_target(target)
+            for node in iter_target_successors(pipeline_target):
+                nodes.append(node)
+            nodes.append(pipeline_target)
+
+    for node in nodes:
         successors = [
             mapping[successor] for successor in repo.index.graph.successors(node)
         ]
