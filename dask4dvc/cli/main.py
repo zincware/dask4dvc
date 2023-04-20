@@ -35,7 +35,7 @@ class Help:
 
 @app.command()
 def repro(
-    targets: typing.List[str],
+    targets: typing.List[str] = typer.Argument(None),
     address: str = typer.Option(None, help=Help.address),
     leave: bool = typer.Option(True, help=Help.leave),
     config: str = typer.Option(None, help=Help.config),

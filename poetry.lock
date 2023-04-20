@@ -935,7 +935,7 @@ six = "*"
 name = "contourpy"
 version = "1.0.7"
 description = "Python library for calculating contours of 2D quadrilateral grids"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -1115,7 +1115,7 @@ tox = ["tox"]
 name = "cycler"
 version = "0.11.0"
 description = "Composable style cycles"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -1734,7 +1734,7 @@ psutil = ">=5.9.0"
 name = "fonttools"
 version = "4.39.3"
 description = "Tools to manipulate font files"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -2542,7 +2542,7 @@ test = ["hatch", "ipykernel", "jupyterlab-server[openapi]", "openapi-spec-valida
 name = "kiwisolver"
 version = "1.4.4"
 description = "A fast implementation of the Cassowary constraint solver"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2770,7 +2770,7 @@ files = [
 name = "matplotlib"
 version = "3.7.1"
 description = "Python plotting package"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -4024,7 +4024,7 @@ testing = ["filelock"]
 name = "python-dateutil"
 version = "2.8.2"
 description = "Extensions to the standard Python datetime module"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 files = [
@@ -5245,7 +5245,7 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 name = "znflow"
 version = "0.1.11"
 description = "A general purpose framework for building and running computational graphs."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
@@ -5288,49 +5288,33 @@ files = [
 ]
 
 [[package]]
-name = "znlib"
-version = "0.1.1"
-description = ""
-category = "dev"
-optional = false
-python-versions = ">=3.8,<4.0.0"
-files = [
-    {file = "znlib-0.1.1-py3-none-any.whl", hash = "sha256:0b626d6966ea1d32566fee8bb9634983e0ef3d17fe70e5a5f734610c58688839"},
-    {file = "znlib-0.1.1.tar.gz", hash = "sha256:f9e838a2b863a7474216e5792be9e775fa6039a7a3764b9dc77402f142408a7a"},
-]
-
-[package.dependencies]
-colorama = ">=0.4.5,<0.5.0"
-matplotlib = {version = ">=3.6.1,<4.0.0", optional = true, markers = "extra == \"zntrack\""}
-zntrack = {version = ">=0.4.3,<0.5.0", optional = true, markers = "extra == \"zntrack\" or extra == \"atomistic\""}
-
-[package.extras]
-atomistic = ["ase (>=3.22.1,<4.0.0)", "cp2k-input-tools[yaml] (>=0.8.2,<0.9.0)", "zntrack (>=0.4.3,<0.5.0)"]
-zntrack = ["matplotlib (>=3.6.1,<4.0.0)", "zntrack (>=0.4.3,<0.5.0)"]
-
-[[package]]
 name = "zntrack"
-version = "0.4.4"
+version = "0.6.0a5"
 description = "Create, Run and Benchmark DVC Pipelines in Python"
 category = "dev"
 optional = false
 python-versions = ">=3.8,<4.0.0"
-files = [
-    {file = "zntrack-0.4.4-py3-none-any.whl", hash = "sha256:7037528b1d5563b4c5ed392726bf610f97f7d039a1db8278470ee0d125b4a3e9"},
-    {file = "zntrack-0.4.4.tar.gz", hash = "sha256:3d57e258bb09bd58e87b7cf96408c05c7849ed66d197d7f48cd8000eb11d971a"},
-]
+files = []
+develop = false
 
 [package.dependencies]
-dot4dict = ">=0.1.1,<0.2.0"
-dvc = ">=2.12.0,<3.0.0"
-pandas = ">=1.4.3,<2.0.0"
-pygit2 = ">=1.9,<1.11"
-pyyaml = ">=6.0,<7.0"
-tqdm = ">=4.64.0,<5.0.0"
-zninit = ">=0.1.6"
-znjson = ">=0.2.1,<0.3.0"
+dot4dict = "^0.1.1"
+dvc = "^2.52.0, !=2.53.0"
+pandas = "^1.4.3"
+pyyaml = "^6.0"
+tqdm = "^4.64.0"
+typer = "^0.7.0"
+znflow = "^0.1.11"
+zninit = "^0.1.9"
+znjson = "^0.2.2"
+
+[package.source]
+type = "git"
+url = "https://github.com/zincware/zntrack"
+reference = "HEAD"
+resolved_reference = "fa57efdbd3f53de9ca12c1f073b33829bb8bc8f0"
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "7e267817ceb2b817d6ba297bcab1c22e1082b026134eb393e015815009dc8147"
+content-hash = "d3fb38046e24310f2471bd32c91b95058ca3ec80f0123203886d835fd8f237bf"

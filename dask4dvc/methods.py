@@ -105,7 +105,7 @@ def parallel_submit(
     mapping = {}
     repo = dvc.repo.Repo()
 
-    if targets is None:
+    if len(targets) == 0:
         nodes = repo.index.graph.nodes
     else:
         nodes = []
@@ -114,9 +114,9 @@ def parallel_submit(
             target: dvc.stage.PipelineStage,
         ) -> dvc.stage.PipelineStage:
             for node in repo.index.graph.successors(target):
+                yield from iter_target_successors(node)
                 if node not in nodes:
                     yield node
-                yield from iter_target_successors(node)
 
         for target in targets:
             pipeline_target = repo.stage.get_target(target)

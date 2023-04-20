@@ -1,51 +1,83 @@
 """Test the 'dask4dvc' CLI."""
-import pytest
-from dask.distributed import LocalCluster
 from typer.testing import CliRunner
 
 from dask4dvc.cli.main import app
-import random
+import zntrack
+import pytest
+import pathlib
 
 runner = CliRunner()
 
 
-@pytest.mark.parametrize("repo_fixture", ("single_node_repo", "multi_node_repo"))
-@pytest.mark.parametrize(
-    "cmd",
-    (["repro"],),
-)
-def test_repro(request: pytest.FixtureRequest, cmd: list, repo_fixture: str) -> None:
-    """Test 'dask4dvc repro'."""
-    _, nodes = request.getfixturevalue(repo_fixture)
+class CreateData(zntrack.Node):
+    """Create some data."""
 
-    result = runner.invoke(app, cmd)
+    inputs = zntrack.zn.params()
+    output = zntrack.zn.outs()
 
+    def run(self) -> None:
+        """ZnTrack run method."""
+        self.output = self.inputs
+
+
+class InputsToOutputs(zntrack.Node):
+    """Create some data."""
+
+    inputs = zntrack.zn.deps()
+    output = zntrack.zn.outs()
+
+    def run(self) -> None:
+        """ZnTrack run method."""
+        self.output = self.inputs
+
+
+def test_single_node_repro(repo_path: pathlib.Path) -> None:
+    """Test repro of a single node."""
+    with zntrack.Project() as project:
+        node = CreateData(inputs=3.1415)
+    project.run(repro=False)
+    result = runner.invoke(app, ["repro"])
     assert result.exit_code == 0
-    for node in nodes:
-        node = node.load()
-        assert node.outputs == 3.1415
+    node.load()
+    node.output == 3.1415
 
 
-@pytest.mark.parametrize("repo_fixture", ("single_node_repo", "multi_node_repo"))
-def test_repro_with_address(request: pytest.FixtureRequest, repo_fixture: str) -> None:
-    """The with a given dask LocalCluster."""
-    _, nodes = request.getfixturevalue(repo_fixture)
+def test_multi_node_repro(repo_path: pathlib.Path) -> None:
+    """Test repro of multiple nodes."""
+    with zntrack.Project(automatic_node_names=True) as project:
+        data1 = CreateData(inputs=3.1415)
+        data2 = CreateData(inputs=2.7182)
 
-    port = random.randrange(start=5000, stop=5500)
+        node1 = InputsToOutputs(inputs=data1.output)
+        node2 = InputsToOutputs(inputs=data2.output)
 
-    cluster = LocalCluster(scheduler_port=port)
-    cluster.adapt()
-
-    result = runner.invoke(app, ["repro", "--address", f"127.0.0.1:{port}"])
-
+    project.run(repro=False)
+    result = runner.invoke(app, ["repro"])
     assert result.exit_code == 0
-    for node in nodes:
-        node = node.load()
-        assert node.outputs == 3.1415
+
+    node1.load()
+    node2.load()
+
+    assert node1.output == 3.1415
+    assert node2.output == 2.7182
 
 
-def test_version() -> None:
-    """Test 'dask4dvc --version'."""
-    result = runner.invoke(app, ["--version"])
+def test_multi_node_repro_targets(repo_path: pathlib.Path) -> None:
+    """Test repro of selected nodes."""
+    with zntrack.Project(automatic_node_names=True) as project:
+        data1 = CreateData(inputs=3.1415)
+        data2 = CreateData(inputs=2.7182)
 
+        node1 = InputsToOutputs(inputs=data1.output)
+        node2 = InputsToOutputs(inputs=data2.output)
+
+    project.run(repro=False)
+    result = runner.invoke(app, ["repro", node1.name])
     assert result.exit_code == 0
+
+    node1.load()
+    with pytest.raises(AttributeError):
+        node2.load(lazy=False)
+        # TODO ZnTrack: should not require lazy for the error upton access
+
+    assert node1.output == 3.1415
