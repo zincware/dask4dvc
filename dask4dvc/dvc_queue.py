@@ -30,3 +30,20 @@ def run_single_experiment(name: str = None) -> None:
 
     result = tasks.collect_exp(None, entry_dict)
     tasks.cleanup_exp(executor, infofile)
+
+
+# repo.reproduce -> list[dvc.stage.PipelineStage]
+# dvc.cli.main(["exp", "exec-run", "--infofile", infofile])
+# calls
+# info = ExecutorInfo.from_dict(load_json(self.args.infofile))
+#         BaseExecutor.reproduce(
+#             info=info,
+#             rev="",
+#             queue=None,
+#             log_level=logger.getEffectiveLevel(),
+#             infofile=self.args.infofile,
+#             copy_paths=self.args.copy_paths,
+#         )
+# which calls
+# dvc.repo.reproduce <- replace with our function
+# no idea what copy_paths does

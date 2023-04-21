@@ -10,7 +10,7 @@ from dask.distributed import Future
 log = logging.getLogger(__name__)
 
 
-def wait_for_futures(futures: typing.Union[Future, typing.Dict[str, Future]]) -> None:
+def wait_for_futures(futures: typing.Union[Future, typing.Dict[str, Future]]) -> dict:
     """Wait for all given future objects to complete.
 
     Raises
@@ -20,11 +20,13 @@ def wait_for_futures(futures: typing.Union[Future, typing.Dict[str, Future]]) ->
     if isinstance(futures, Future):
         futures = {"main": futures}
 
-    for future in futures.values():
+    results = {}
+    for name, future in futures.items():
         try:
-            _ = future.result()
+            results[name] = future.result()
         except Exception as err:
             log.critical(f"Waiting for result from '{future}' failed with {err}")
+    return results
 
 
 def get_cluster_from_config(file: str) -> dask_jobqueue.core.JobQueueCluster:
