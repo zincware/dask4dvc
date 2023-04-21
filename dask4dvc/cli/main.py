@@ -6,7 +6,7 @@ import logging
 import dask.distributed
 import typer
 import typing
-from dask4dvc import methods, utils
+from dask4dvc import dvc_repro, utils
 
 
 app = typer.Typer()
@@ -54,7 +54,7 @@ def repro(
         if max_workers is not None:
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
-        results = methods.parallel_submit(client, targets=targets, force=force)
+        results = dvc_repro.parallel_submit(client, targets=targets, force=force)
 
         utils.dask.wait_for_futures(results)
         if not leave:
