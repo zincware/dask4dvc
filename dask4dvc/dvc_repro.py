@@ -71,7 +71,9 @@ def _load_run_cache(repo: dvc.repo.Repo, stage: dvc.stage.Stage) -> None:
             )
 
 
-def submit_stage(name: str, force: bool, successors: list) -> str:
+def submit_stage(
+    name: str, force: bool, successors: list
+) -> typing.List[dvc.stage.PipelineStage]:
     """Submit a stage to the Dask cluster."""
     repo = dvc.repo.Repo()
 
@@ -102,7 +104,7 @@ def submit_stage(name: str, force: bool, successors: list) -> str:
             # add the stage to the run cache
             _run_locked_cmd(repo, repo.commit, name, force=True)
 
-    return name
+    return stages
 
 
 def parallel_submit(
