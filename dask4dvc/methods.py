@@ -130,7 +130,12 @@ def parallel_submit(
         ]
 
         mapping[node] = client.submit(
-            submit_stage, node.addressing, force=force, successors=successors, pure=False
+            submit_stage,
+            node.addressing,
+            force=force,
+            successors=successors,
+            pure=False,
+            key=node.addressing,
         )
 
     mapping = {
