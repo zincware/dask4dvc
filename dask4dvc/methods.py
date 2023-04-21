@@ -9,6 +9,7 @@ import dask.distributed
 import dvc.lock
 import dvc.exceptions
 import dvc.repo
+from dvc.repo.reproduce import _get_steps
 import dvc.utils.strictyaml
 import dvc.stage
 from dvc.stage.cache import RunCacheNotFoundError
@@ -112,23 +113,11 @@ def parallel_submit(
     repo = dvc.repo.Repo()
 
     if len(targets) == 0:
-        nodes = repo.index.graph.nodes
+        targets = repo.index.graph.nodes
     else:
-        nodes = []
+        targets = [repo.stage.get_target(x) for x in targets]
 
-        def iter_target_successors(
-            target: dvc.stage.PipelineStage,
-        ) -> dvc.stage.PipelineStage:
-            for node in repo.index.graph.successors(target):
-                yield from iter_target_successors(node)
-                if node not in nodes:
-                    yield node
-
-        for target in targets:
-            pipeline_target = repo.stage.get_target(target)
-            for node in iter_target_successors(pipeline_target):
-                nodes.append(node)
-            nodes.append(pipeline_target)
+    nodes = _get_steps(repo.index.graph, targets, downstream=False, single_item=False)
 
     for node in nodes:
         if node.cmd is None:
