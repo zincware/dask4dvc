@@ -6,7 +6,7 @@ import logging
 import dask.distributed
 import typer
 import typing
-from dask4dvc import dvc_repro, utils
+from dask4dvc import dvc_repro, utils, dvc_queue
 
 
 app = typer.Typer()
@@ -62,13 +62,12 @@ def repro(
 
 
 @app.command()
-def run() -> None:
+def run(
+    targets: typing.List[str] = typer.Argument(None),
+) -> None:
     """Run DVC experiments in parallel using dask."""
-    typer.echo(
-        "'dask4dvc run' was removed due to instability. Latest version including this"
-        " feature is 'pip install dask4dvc==0.1.4'."
-    )
-    raise typer.Exit()
+    for target in targets:
+        dvc_queue.run_single_experiment(target)
 
 
 def version_callback(value: bool) -> None:
