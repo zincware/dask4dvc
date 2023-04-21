@@ -6,8 +6,21 @@ import zntrack
 import pytest
 import pathlib
 import random
+import dvc.cli
 
 runner = CliRunner()
+
+
+class ReadFile(zntrack.Node):
+    """Read a file."""
+
+    file: str = zntrack.dvc.deps()
+    output: str = zntrack.zn.outs()
+
+    def run(self) -> None:
+        """ZnTrack run method."""
+        with open(self.file, "r") as f:
+            self.output = f.read()
 
 
 class CreateData(zntrack.Node):
@@ -114,3 +127,19 @@ def test_single_node_repro_force(repo_path: pathlib.Path) -> None:
 
     node2 = RandomData.from_rev(lazy=False)
     assert node2.output != node.output
+
+
+def test_single_node_file_deps(repo_path: pathlib.Path) -> None:
+    """Test repro of a single node with file deps."""
+    with open("test.txt", "w") as f:
+        f.write("Hello World")
+    assert dvc.cli.main(["add", "test.txt"]) == 0
+
+    with zntrack.Project() as project:
+        node = ReadFile(file="test.txt")
+    project.run(repro=False)
+    result = runner.invoke(app, ["repro"])
+    assert result.exit_code == 0
+
+    node.load(lazy=False)
+    assert node.output == "Hello World"
