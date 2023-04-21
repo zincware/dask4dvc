@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dask4dvc"
-version = "0.2.0"
+version = "0.2.1"
 description = "Use dask to run the DVC graph"
 authors = ["zincwarecode <zincwarecode@gmail.com>"]
 license = "Apache-2.0"
@@ -32,11 +32,10 @@ pytest = "^7.1.2"
 pytest-xdist = "^2.5.0"
 coverage = "^6.4.2"
 pre-commit = "^2.20.0"
-zntrack = "^0.4.0"	
 pylint = "^2.15.5"
-znlib = {extras = ["zntrack"], version = "^0.1.0"}
 
 # TODO remove znlib here!
+zntrack = {git = "https://github.com/zincware/zntrack"}
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

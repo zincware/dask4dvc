@@ -5,7 +5,7 @@ import logging
 
 import dask.distributed
 import typer
-
+import typing
 from dask4dvc import methods, utils
 
 
@@ -35,11 +35,13 @@ class Help:
 
 @app.command()
 def repro(
+    targets: typing.List[str] = typer.Argument(None),
     address: str = typer.Option(None, help=Help.address),
     leave: bool = typer.Option(True, help=Help.leave),
     config: str = typer.Option(None, help=Help.config),
     max_workers: int = typer.Option(None, help=Help.max_workers),
     retries: int = typer.Option(10, help=Help.retries),
+    force: bool = typer.Option(False, "--force/", "-f/", help="use `dvc repro --force`"),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     utils.CONFIG.retries = retries
@@ -52,7 +54,7 @@ def repro(
         if max_workers is not None:
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
-        results = methods.parallel_submit(client)
+        results = methods.parallel_submit(client, targets=targets, force=force)
 
         utils.dask.wait_for_futures(results)
         if not leave:

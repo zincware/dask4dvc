@@ -935,7 +935,7 @@ six = "*"
 name = "contourpy"
 version = "1.0.7"
 description = "Python library for calculating contours of 2D quadrilateral grids"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -1115,7 +1115,7 @@ tox = ["tox"]
 name = "cycler"
 version = "0.11.0"
 description = "Composable style cycles"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -1422,14 +1422,14 @@ pgp = ["gpg"]
 
 [[package]]
 name = "dvc"
-version = "2.54.0"
+version = "2.55.0"
 description = "Git for data scientists - manage your code and data together"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "dvc-2.54.0-py3-none-any.whl", hash = "sha256:776946f94b8b96b4f9c09259c4f07111ed5e94fff05e365d4e0a0fb5d6d9ad09"},
-    {file = "dvc-2.54.0.tar.gz", hash = "sha256:aec4ecdd5025f61a63001319975b30f22d2bfa8861cf723ea0636fad901ef934"},
+    {file = "dvc-2.55.0-py3-none-any.whl", hash = "sha256:9230784107633d1e4161824136625aeb233b55a374b214cdab44e049b9a7b95b"},
+    {file = "dvc-2.55.0.tar.gz", hash = "sha256:3ee239ae1e946fe1ac8999fc829ccb570e03c248938e5b8235f5647cf1dce806"},
 ]
 
 [package.dependencies]
@@ -1472,12 +1472,12 @@ voluptuous = ">=0.11.7"
 all = ["dvc[azure,gdrive,gs,hdfs,oss,s3,ssh,webdav,webhdfs]"]
 azure = ["dvc-azure (==2.21.1)"]
 dev = ["dvc[azure,gdrive,gs,hdfs,lint,oss,s3,ssh,terraform,tests,webdav,webhdfs]"]
-gdrive = ["dvc-gdrive (==2.19.1)"]
+gdrive = ["dvc-gdrive (==2.19.2)"]
 gs = ["dvc-gs (==2.22.0)"]
 hdfs = ["dvc-hdfs (==2.19)"]
 lint = ["mypy (==1.2.0)", "pylint (==2.17.2)", "types-colorama", "types-psutil", "types-requests", "types-tabulate", "types-toml", "types-tqdm"]
 oss = ["dvc-oss (==2.19)"]
-s3 = ["dvc-s3 (==2.21)"]
+s3 = ["dvc-s3 (==2.22.0)"]
 ssh = ["dvc-ssh (>=2.22.1,<3)"]
 ssh-gssapi = ["dvc-ssh[gssapi] (>=2.22.1,<3)"]
 terraform = ["tpi[ssh] (>=2.1)"]
@@ -1579,14 +1579,14 @@ tests = ["funcy (>=1.17)", "matplotlib", "mypy (==0.981)", "pylint (==2.15.0)", 
 
 [[package]]
 name = "dvc-studio-client"
-version = "0.7.0"
+version = "0.8.0"
 description = "Small library to post data from DVC/DVCLive to Iterative Studio"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "dvc-studio-client-0.7.0.tar.gz", hash = "sha256:71884a1fe610cd7543d87d6751c798417ac4798b5c369614603af5e0d4e592a7"},
-    {file = "dvc_studio_client-0.7.0-py3-none-any.whl", hash = "sha256:9dc922b3e549918996d99b2f7274641878a68cb8a606e6ba67a7a59feb619180"},
+    {file = "dvc-studio-client-0.8.0.tar.gz", hash = "sha256:110097f39970bbb8f14f9c26e730d8d1fa3d5c3928d6ec6ccdadd86769049f4c"},
+    {file = "dvc_studio_client-0.8.0-py3-none-any.whl", hash = "sha256:a7f709f45c8f06d57772dcd2f8caece0fc4a8a5d665e79fee482bb10b2d84ca2"},
 ]
 
 [package.dependencies]
@@ -1685,19 +1685,19 @@ devel = ["colorama", "json-spec", "jsonschema", "pylint", "pytest", "pytest-benc
 
 [[package]]
 name = "filelock"
-version = "3.11.0"
+version = "3.12.0"
 description = "A platform independent file lock."
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "filelock-3.11.0-py3-none-any.whl", hash = "sha256:f08a52314748335c6460fc8fe40cd5638b85001225db78c2aa01c8c0db83b318"},
-    {file = "filelock-3.11.0.tar.gz", hash = "sha256:3618c0da67adcc0506b015fd11ef7faf1b493f0b40d87728e19986b536890c37"},
+    {file = "filelock-3.12.0-py3-none-any.whl", hash = "sha256:ad98852315c2ab702aeb628412cbf7e95b7ce8c3bf9565670b4eaecf1db370a9"},
+    {file = "filelock-3.12.0.tar.gz", hash = "sha256:fc03ae43288c013d2ea83c8597001b1129db351aad9c57fe2409327916b8e718"},
 ]
 
 [package.extras]
-docs = ["furo (>=2023.3.27)", "sphinx (>=6.1.3)", "sphinx-autodoc-typehints (>=1.22,!=1.23.4)"]
-testing = ["covdefaults (>=2.3)", "coverage (>=7.2.2)", "diff-cover (>=7.5)", "pytest (>=7.2.2)", "pytest-cov (>=4)", "pytest-mock (>=3.10)", "pytest-timeout (>=2.1)"]
+docs = ["furo (>=2023.3.27)", "sphinx (>=6.1.3)", "sphinx-autodoc-typehints (>=1.23,!=1.23.4)"]
+testing = ["covdefaults (>=2.3)", "coverage (>=7.2.3)", "diff-cover (>=7.5)", "pytest (>=7.3.1)", "pytest-cov (>=4)", "pytest-mock (>=3.10)", "pytest-timeout (>=2.1)"]
 
 [[package]]
 name = "flatten-dict"
@@ -1734,7 +1734,7 @@ psutil = ">=5.9.0"
 name = "fonttools"
 version = "4.39.3"
 description = "Tools to manipulate font files"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -2542,7 +2542,7 @@ test = ["hatch", "ipykernel", "jupyterlab-server[openapi]", "openapi-spec-valida
 name = "kiwisolver"
 version = "1.4.4"
 description = "A fast implementation of the Cassowary constraint solver"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2770,7 +2770,7 @@ files = [
 name = "matplotlib"
 version = "3.7.1"
 description = "Python plotting package"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -3802,49 +3802,43 @@ pyparsing = ">=2.1.4"
 
 [[package]]
 name = "pygit2"
-version = "1.10.1"
+version = "1.12.0"
 description = "Python bindings for libgit2."
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "pygit2-1.10.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:e3f60e47c6a7a87f18a112753eb98848f4c5333986bec1940558ce09cdaf53bf"},
-    {file = "pygit2-1.10.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:f0f69ea42231bebf08006c85cd5aa233c9c047c5a88b7fcfb4b639476b70e31b"},
-    {file = "pygit2-1.10.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0097b6631ef05c837c4800fad559d0865a90c55475a18f38c6f2f5a12750e914"},
-    {file = "pygit2-1.10.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ddb3b5bdcdfae205d9cc0c80bc53fad222a5ba67e66fd336ef223f86b0ac5835"},
-    {file = "pygit2-1.10.1-cp310-cp310-win32.whl", hash = "sha256:3efd2a2ab2bb443e1b758525546d74a5a12fe27006194d3c02b3e6ecc1e101e6"},
-    {file = "pygit2-1.10.1-cp310-cp310-win_amd64.whl", hash = "sha256:11225811194ae6b9dbb34c2e8900e0eba6eacc180d82766e3dbddcbd2c6e6454"},
-    {file = "pygit2-1.10.1-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:73e251d0b73f1010ad28c20bcdcf33e312fb363f10b7268ad2bcfa09770f9ac2"},
-    {file = "pygit2-1.10.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:cb73f7967207a9ac485722ef0e517e5ca482f3c1308a0ac934707cb267b0ac7a"},
-    {file = "pygit2-1.10.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b115bef251af4daf18f2f967287b56da2eae2941d5389dc1666bd0160892d769"},
-    {file = "pygit2-1.10.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dfd55a6cf7ad6276fb5772e5c60c51fca2d9a5e68ea3e7237847421c10080a68"},
-    {file = "pygit2-1.10.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:33138c256ad0ff084f5d8a82ab7d280f9ed6706ebb000ac82e3d133e2d82b366"},
-    {file = "pygit2-1.10.1-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1f4f507e5cd775f6d5d95ec65761af4cdb33b2f859af15bf10a06d11efd0d3b2"},
-    {file = "pygit2-1.10.1-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:752f844d5379081fae5ef78e3bf6f0f35ae9b11aafc37e5e03e1c3607b196806"},
-    {file = "pygit2-1.10.1-cp37-cp37m-win32.whl", hash = "sha256:b31ffdbc87629613ae03a533e01eee79112a12f66faf375fa08934074044a664"},
-    {file = "pygit2-1.10.1-cp37-cp37m-win_amd64.whl", hash = "sha256:e09386b71ad474f2c2c02b6b251fa904b1145dabfe9095955ab30a789aaf84c0"},
-    {file = "pygit2-1.10.1-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:564e832e750f889aea3bb3e82674e1c860c9b89a141404530271e1341723a258"},
-    {file = "pygit2-1.10.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:43bb910272866eb822e930dbd0feecc340e0c24934143aab651fa180cc5ebfb0"},
-    {file = "pygit2-1.10.1-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:25e4905cbb87db598b1cb38800ff995c0ba1f58745e2f52af4d54dbc93b9bda8"},
-    {file = "pygit2-1.10.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bb1f4689ce38cd62a7000d38602ba4d704df5cec708e5d98dadaffcf510f3317"},
-    {file = "pygit2-1.10.1-cp38-cp38-win32.whl", hash = "sha256:b67ef30f3c022be1d6da9ef0188f60fc2d20639bff44693ef5653818e887001b"},
-    {file = "pygit2-1.10.1-cp38-cp38-win_amd64.whl", hash = "sha256:dcd849c44bd743d829dbd9dc9d7e13c14cf31a47c22e2e3f9e98fa845a8b8b28"},
-    {file = "pygit2-1.10.1-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:e8bb9002924975271d64e8869b44ea97f068e85b5edd03e802e4917b770aaf2d"},
-    {file = "pygit2-1.10.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:889ca83528c0649afd970da700cc6ed47dc340481f146a39ba5bfbeca1ddd6f8"},
-    {file = "pygit2-1.10.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d5465db21c6fd481ec29aa7afcca9a85b1fdb19b2f2d09a31b4bdba2f1bd0e75"},
-    {file = "pygit2-1.10.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:38ceecd5d30583f9db56aadcd7238bb3c76a2934d8a932de47aed77fe3c188e7"},
-    {file = "pygit2-1.10.1-cp39-cp39-win32.whl", hash = "sha256:9d6e1270b91e7bf70185bb4c3686e04cca87a385c8a2d5c74eec8770091531be"},
-    {file = "pygit2-1.10.1-cp39-cp39-win_amd64.whl", hash = "sha256:d4251830276018c2346ddccad4b4ce06ed1d983b002a633c4d894b13669052d0"},
-    {file = "pygit2-1.10.1-pp37-pypy37_pp73-macosx_10_9_x86_64.whl", hash = "sha256:7eb2cee54a1cb468b5502493ee4f3ec2f1f82db9c46fab7dacaa37afc4fcde8e"},
-    {file = "pygit2-1.10.1-pp37-pypy37_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:411dc8af5f25c30a0c3d79ee1e22fb892d6fd6ccb54d4c1fb7746e6274e36426"},
-    {file = "pygit2-1.10.1-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fe41da630f4e7cb290dc7e97edf30a59d634426af52a89d4ab5c0fb1ea9ccfe4"},
-    {file = "pygit2-1.10.1-pp38-pypy38_pp73-macosx_10_9_x86_64.whl", hash = "sha256:9da53c6f5c08308450059d7dfb3067d59c45f14bee99743e536c5f9d9823f154"},
-    {file = "pygit2-1.10.1-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bb49f9469a893f75f105cdf2c79254859aaf2fdce1078c38514ca12fe185a759"},
-    {file = "pygit2-1.10.1-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ff838665d6410b5a605f53c1ccd2d2f87ca30de59e89773e7cb5e10211426f90"},
-    {file = "pygit2-1.10.1-pp39-pypy39_pp73-macosx_10_9_x86_64.whl", hash = "sha256:9d23bb613f5692da78c09a79ae40d6ced57b772ae9153aed23a9aa1889a16c85"},
-    {file = "pygit2-1.10.1-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:e3a3cc867fa6907bfc78d7d1322f3dabd4107b16238205df7e2dec9ee265f0c0"},
-    {file = "pygit2-1.10.1-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cb3eb2f1d437db6e115d5f56d122f2f3737fa2e6063aa42e4d856ca76d785ce6"},
-    {file = "pygit2-1.10.1.tar.gz", hash = "sha256:354651bf062c02d1f08041d6fbf1a9b4bf7a93afce65979bdc08bdc65653aa2e"},
+    {file = "pygit2-1.12.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:b44a3b38e62dbf8cb559a40d2b39506a638d13542502ddb927f1c05565048f27"},
+    {file = "pygit2-1.12.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:834cf5b54d9b49c562669ec986be54c7915585638690c11f1dc4e6a55bc5d79d"},
+    {file = "pygit2-1.12.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2ecb096cdbbf142d8787cf879ab927fc9777d36580d2e5758d02c9474a3b015c"},
+    {file = "pygit2-1.12.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:15620696743ffac71cfdaf270944d9363b70442c1fbe96f5e4a69639c2fe7c23"},
+    {file = "pygit2-1.12.0-cp310-cp310-win32.whl", hash = "sha256:de21194e18e4d93f793740b2b979dbe9dd6607f342a4fad3ecedeaf26ec743df"},
+    {file = "pygit2-1.12.0-cp310-cp310-win_amd64.whl", hash = "sha256:0a9d49f71bec7c4f2ff8273e0c7caba4b2f21bfc56e2071e429028b20ab9d762"},
+    {file = "pygit2-1.12.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:a428970b44827b703cc3267de8d71648f491546d5b9276505ef5f232a921a34e"},
+    {file = "pygit2-1.12.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:2bb7b674124a38b12a5aaacca3b8c1e29674f3b46cb907af0b3ba75d90e5952a"},
+    {file = "pygit2-1.12.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:de46940b46bee12f4c938aadf4f59617798f704c8ac5f08b5a84914459d604be"},
+    {file = "pygit2-1.12.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3fbfb3ebe7f57fe7873d86e84b476869f407d6bb204a39a3e7d04e4a7f0e43c1"},
+    {file = "pygit2-1.12.0-cp311-cp311-win32.whl", hash = "sha256:db98978d559d6e84187d463fb3aa83cf6120dadf62058e3d05a97457f9f27247"},
+    {file = "pygit2-1.12.0-cp311-cp311-win_amd64.whl", hash = "sha256:8734a44e0dab8a5e6668e4a926f7171b59b87d65981bd3732efba57c327cec6d"},
+    {file = "pygit2-1.12.0-cp38-cp38-macosx_10_9_universal2.whl", hash = "sha256:1bb73ffb345400f8c6fe391431e06b93e26bc4d2048b1ac3f7c54dae5f7b6dc2"},
+    {file = "pygit2-1.12.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:fdeaf1631803616d303b808cd644ee17164fb675241ab1b0bb243d4a3d3de59f"},
+    {file = "pygit2-1.12.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:652b3f0510ad21ec6275b246aa3e7a2e20f2f9c37a9844804887fabc2db49ca3"},
+    {file = "pygit2-1.12.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b2419cd1034bf593847466b188a65bd9d512e13b7da0e8c3a74b487d8014a6c1"},
+    {file = "pygit2-1.12.0-cp38-cp38-win32.whl", hash = "sha256:6a445a537de152364b334e73047af9225fe8c6f54c7d815d8c751cb23b79cbef"},
+    {file = "pygit2-1.12.0-cp38-cp38-win_amd64.whl", hash = "sha256:ad1cca4533beee034277fe01f0d4029da40d2bd1a944a8cd17bffccc0331cc53"},
+    {file = "pygit2-1.12.0-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:2ad7b21e35e759d033dede5dc4971f6c9b3408f9096b26fabc7cedb49e319680"},
+    {file = "pygit2-1.12.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:3e303aa9d7de6039cc4450a1fbd5911fab22867dc4e05f148b0cd7c56f7b84b2"},
+    {file = "pygit2-1.12.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:869e68cfae7e0e00a799efa26bba3f829bdeafa1462225a7db1317dacb4e6a4e"},
+    {file = "pygit2-1.12.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c779c15bf6ebce986cb753c8113ccfb329c12d4a73b303ee7ac2c8961288b8cd"},
+    {file = "pygit2-1.12.0-cp39-cp39-win32.whl", hash = "sha256:c6ac2fd8ed30016235b06aacc28e5f10e1a17d0f02eab35f5f503138bbee763d"},
+    {file = "pygit2-1.12.0-cp39-cp39-win_amd64.whl", hash = "sha256:2483e4aa8bb4290ab157d575b00b830528c669869d710646a1d4af7209d59e81"},
+    {file = "pygit2-1.12.0-pp38-pypy38_pp73-macosx_10_9_x86_64.whl", hash = "sha256:8fca4ca59928436fca5df3d54a7d591e7aa12ebaeaeb1801a99e09970fb8f1d3"},
+    {file = "pygit2-1.12.0-pp38-pypy38_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0746791741ba1879faafd12be0b7fb8edd06633508bbf8aabfd28415f1c0b13f"},
+    {file = "pygit2-1.12.0-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b9d8b7e1d143415d462d82fc5d9dd5922c527474871c7b3c3a8aec009b74b1c"},
+    {file = "pygit2-1.12.0-pp39-pypy39_pp73-macosx_10_9_x86_64.whl", hash = "sha256:69ee34f8b77fc60dcf93524fd843eacc416be906b7471746d2ee8214d5a591a0"},
+    {file = "pygit2-1.12.0-pp39-pypy39_pp73-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3c290dadcf42e9d857ea20c37781168de1d1ac31b196b450400f962279aa405f"},
+    {file = "pygit2-1.12.0-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e1d9bdd2837f9f1cacb571889ac4226844a41476509c325732af06b622293782"},
+    {file = "pygit2-1.12.0.tar.gz", hash = "sha256:e9440d08665e35278989939590a53f37a938eada4f9446844930aa2ee30d73be"},
 ]
 
 [package.dependencies]
@@ -3852,14 +3846,14 @@ cffi = ">=1.9.1"
 
 [[package]]
 name = "pygments"
-version = "2.15.0"
+version = "2.15.1"
 description = "Pygments is a syntax highlighting package written in Python."
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "Pygments-2.15.0-py3-none-any.whl", hash = "sha256:77a3299119af881904cd5ecd1ac6a66214b6e9bed1f2db16993b54adede64094"},
-    {file = "Pygments-2.15.0.tar.gz", hash = "sha256:f7e36cffc4c517fbc252861b9a6e4644ca0e5abadf9a113c72d1358ad09b9500"},
+    {file = "Pygments-2.15.1-py3-none-any.whl", hash = "sha256:db2db3deb4b4179f399a09054b023b6a586b76499d36965813c71aa8ed7b5fd1"},
+    {file = "Pygments-2.15.1.tar.gz", hash = "sha256:8ace4d3c1dd481894b2005f560ead0f9f19ee64fe983366be1a21e171d12775c"},
 ]
 
 [package.extras]
@@ -4024,7 +4018,7 @@ testing = ["filelock"]
 name = "python-dateutil"
 version = "2.8.2"
 description = "Extensions to the standard Python datetime module"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
 files = [
@@ -4443,14 +4437,14 @@ win32 = ["pywin32"]
 
 [[package]]
 name = "setuptools"
-version = "67.6.1"
+version = "67.7.1"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "setuptools-67.6.1-py3-none-any.whl", hash = "sha256:e728ca814a823bf7bf60162daf9db95b93d532948c4c0bea762ce62f60189078"},
-    {file = "setuptools-67.6.1.tar.gz", hash = "sha256:257de92a9d50a60b8e22abfcbb771571fde0dbf3ec234463212027a4eeecbe9a"},
+    {file = "setuptools-67.7.1-py3-none-any.whl", hash = "sha256:6f0839fbdb7e3cfef1fc38d7954f5c1c26bf4eebb155a55c9bf8faf997b9fb67"},
+    {file = "setuptools-67.7.1.tar.gz", hash = "sha256:bb16732e8eb928922eabaa022f881ae2b7cdcfaf9993ef1f5e841a96d32b8e0c"},
 ]
 
 [package.extras]
@@ -4838,24 +4832,24 @@ files = [
 
 [[package]]
 name = "virtualenv"
-version = "20.21.0"
+version = "20.22.0"
 description = "Virtual Python Environment builder"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "virtualenv-20.21.0-py3-none-any.whl", hash = "sha256:31712f8f2a17bd06234fa97fdf19609e789dd4e3e4bf108c3da71d710651adbc"},
-    {file = "virtualenv-20.21.0.tar.gz", hash = "sha256:f50e3e60f990a0757c9b68333c9fdaa72d7188caa417f96af9e52407831a3b68"},
+    {file = "virtualenv-20.22.0-py3-none-any.whl", hash = "sha256:48fd3b907b5149c5aab7c23d9790bea4cac6bc6b150af8635febc4cfeab1275a"},
+    {file = "virtualenv-20.22.0.tar.gz", hash = "sha256:278753c47aaef1a0f14e6db8a4c5e1e040e90aea654d0fc1dc7e0d8a42616cc3"},
 ]
 
 [package.dependencies]
 distlib = ">=0.3.6,<1"
-filelock = ">=3.4.1,<4"
-platformdirs = ">=2.4,<4"
+filelock = ">=3.11,<4"
+platformdirs = ">=3.2,<4"
 
 [package.extras]
-docs = ["furo (>=2022.12.7)", "proselint (>=0.13)", "sphinx (>=6.1.3)", "sphinx-argparse (>=0.4)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=22.12)"]
-test = ["covdefaults (>=2.2.2)", "coverage (>=7.1)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7)", "packaging (>=23)", "pytest (>=7.2.1)", "pytest-env (>=0.8.1)", "pytest-freezegun (>=0.4.2)", "pytest-mock (>=3.10)", "pytest-randomly (>=3.12)", "pytest-timeout (>=2.1)"]
+docs = ["furo (>=2023.3.27)", "proselint (>=0.13)", "sphinx (>=6.1.3)", "sphinx-argparse (>=0.4)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=22.12)"]
+test = ["covdefaults (>=2.3)", "coverage (>=7.2.3)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7)", "packaging (>=23.1)", "pytest (>=7.3.1)", "pytest-env (>=0.8.1)", "pytest-freezegun (>=0.4.2)", "pytest-mock (>=3.10)", "pytest-randomly (>=3.12)", "pytest-timeout (>=2.1)"]
 
 [[package]]
 name = "voluptuous"
@@ -5245,7 +5239,7 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 name = "znflow"
 version = "0.1.11"
 description = "A general purpose framework for building and running computational graphs."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
@@ -5288,49 +5282,33 @@ files = [
 ]
 
 [[package]]
-name = "znlib"
-version = "0.1.1"
-description = ""
-category = "dev"
-optional = false
-python-versions = ">=3.8,<4.0.0"
-files = [
-    {file = "znlib-0.1.1-py3-none-any.whl", hash = "sha256:0b626d6966ea1d32566fee8bb9634983e0ef3d17fe70e5a5f734610c58688839"},
-    {file = "znlib-0.1.1.tar.gz", hash = "sha256:f9e838a2b863a7474216e5792be9e775fa6039a7a3764b9dc77402f142408a7a"},
-]
-
-[package.dependencies]
-colorama = ">=0.4.5,<0.5.0"
-matplotlib = {version = ">=3.6.1,<4.0.0", optional = true, markers = "extra == \"zntrack\""}
-zntrack = {version = ">=0.4.3,<0.5.0", optional = true, markers = "extra == \"zntrack\" or extra == \"atomistic\""}
-
-[package.extras]
-atomistic = ["ase (>=3.22.1,<4.0.0)", "cp2k-input-tools[yaml] (>=0.8.2,<0.9.0)", "zntrack (>=0.4.3,<0.5.0)"]
-zntrack = ["matplotlib (>=3.6.1,<4.0.0)", "zntrack (>=0.4.3,<0.5.0)"]
-
-[[package]]
 name = "zntrack"
-version = "0.4.4"
+version = "0.6.0a5"
 description = "Create, Run and Benchmark DVC Pipelines in Python"
 category = "dev"
 optional = false
 python-versions = ">=3.8,<4.0.0"
-files = [
-    {file = "zntrack-0.4.4-py3-none-any.whl", hash = "sha256:7037528b1d5563b4c5ed392726bf610f97f7d039a1db8278470ee0d125b4a3e9"},
-    {file = "zntrack-0.4.4.tar.gz", hash = "sha256:3d57e258bb09bd58e87b7cf96408c05c7849ed66d197d7f48cd8000eb11d971a"},
-]
+files = []
+develop = false
 
 [package.dependencies]
-dot4dict = ">=0.1.1,<0.2.0"
-dvc = ">=2.12.0,<3.0.0"
-pandas = ">=1.4.3,<2.0.0"
-pygit2 = ">=1.9,<1.11"
-pyyaml = ">=6.0,<7.0"
-tqdm = ">=4.64.0,<5.0.0"
-zninit = ">=0.1.6"
-znjson = ">=0.2.1,<0.3.0"
+dot4dict = "^0.1.1"
+dvc = "^2.52.0, !=2.53.0"
+pandas = "^1.4.3"
+pyyaml = "^6.0"
+tqdm = "^4.64.0"
+typer = "^0.7.0"
+znflow = "^0.1.11"
+zninit = "^0.1.9"
+znjson = "^0.2.2"
+
+[package.source]
+type = "git"
+url = "https://github.com/zincware/zntrack"
+reference = "HEAD"
+resolved_reference = "e0f610739d2e05c0093f685fb050b7df62e5b5cf"
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "7e267817ceb2b817d6ba297bcab1c22e1082b026134eb393e015815009dc8147"
+content-hash = "d3fb38046e24310f2471bd32c91b95058ca3ec80f0123203886d835fd8f237bf"

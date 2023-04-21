@@ -9,6 +9,8 @@ The `dask4dvc` package combines [Dask Distributed](https://distributed.dask.org/
 
 The `dask4dvc` package will try to run the DVC graph in parallel.
 
+> :warning: dask4dvc will disbale a few of the checks that DVC implements. Do not make changes to your workspace during the runtime of `dask4dvc repro`.
+
 ## Usage
 Dask4DVC provides a CLI similar to DVC.
 
