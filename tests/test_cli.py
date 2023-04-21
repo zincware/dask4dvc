@@ -120,13 +120,13 @@ def test_single_node_repro_force(repo_path: pathlib.Path) -> None:
     assert result.exit_code == 0
 
     node2 = RandomData.from_rev(lazy=False)
-    assert node2.output == node.output
+    assert node2.output == pytest.approx(node.output)
 
     result = runner.invoke(app, ["repro", "--force"])
     assert result.exit_code == 0
 
     node2 = RandomData.from_rev(lazy=False)
-    assert node2.output != node.output
+    assert node2.output != pytest.approx(node.output)
 
 
 def test_single_node_file_deps(repo_path: pathlib.Path) -> None:
@@ -150,3 +150,22 @@ def test_single_node_file_deps(repo_path: pathlib.Path) -> None:
 
     node.load(lazy=False)
     assert node.output == "Hello World"
+
+
+def test_multi_complex_graph(repo_path: pathlib.Path) -> None:
+    """Test a more complex path that failed before."""
+    with zntrack.Project(automatic_node_names=True) as project:
+        data1 = CreateData(inputs=3.1415)
+        data2 = CreateData(inputs=2.7182)
+
+        node1 = InputsToOutputs(inputs=[data1.output, data2.output])
+        node2 = InputsToOutputs(inputs=node1.output)
+        node3 = InputsToOutputs(inputs=node1.output)
+
+        node4 = InputsToOutputs(inputs=[node2.output, node3.output])
+
+        InputsToOutputs(inputs=[node4.output, node2.output])
+
+    project.run(repro=False)
+    result = runner.invoke(app, ["repro"])
+    assert result.exit_code == 0

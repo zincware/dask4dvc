@@ -80,7 +80,7 @@ def submit_stage(name: str, force: bool, successors: list) -> str:
         # dvc reproduce returns the stages that are not checked out
         stages = _run_locked_cmd(repo, repo.reproduce, name, dry=True, single_item=True)
 
-    if len(stages) == 0:
+    if len(stages) == 0 and not force:
         # if the stage is already checked out, we don't need to run it
         log.info(f"Stage '{name}' didn't change, skipping")
 
