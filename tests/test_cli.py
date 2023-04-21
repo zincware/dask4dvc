@@ -143,3 +143,10 @@ def test_single_node_file_deps(repo_path: pathlib.Path) -> None:
 
     node.load(lazy=False)
     assert node.output == "Hello World"
+
+    # Now force and target
+    result = runner.invoke(app, ["repro", "-f", "ReadFile"])
+    assert result.exit_code == 0
+
+    node.load(lazy=False)
+    assert node.output == "Hello World"

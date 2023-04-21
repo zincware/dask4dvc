@@ -131,6 +131,11 @@ def parallel_submit(
             nodes.append(pipeline_target)
 
     for node in nodes:
+        if node.cmd is None:
+            # if the stage doesn't have a command, e.g. a dvc tracked file
+            # we don't need to run it
+            mapping[node] = None
+            continue
         successors = [
             mapping[successor] for successor in repo.index.graph.successors(node)
         ]
@@ -138,5 +143,9 @@ def parallel_submit(
         mapping[node] = client.submit(
             submit_stage, node.addressing, force=force, successors=successors, pure=False
         )
+
+    mapping = {
+        node.addressing: future for node, future in mapping.items() if future is not None
+    }
 
     return mapping
