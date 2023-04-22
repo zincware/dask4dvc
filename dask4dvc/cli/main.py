@@ -2,13 +2,13 @@
 
 import importlib.metadata
 import logging
+import typing
 
 import dask.distributed
-import typer
-import typing
-from dask4dvc import dvc_repro, utils, dvc_queue
 import dvc.repo
+import typer
 
+from dask4dvc import dvc_queue, dvc_repro, utils
 
 app = typer.Typer()
 

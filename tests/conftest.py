@@ -1,10 +1,11 @@
 """global pytest fixtures."""
 import os
 import pathlib
+import shutil
+
 import dvc.cli
 import git
 import pytest
-import shutil
 
 
 @pytest.fixture

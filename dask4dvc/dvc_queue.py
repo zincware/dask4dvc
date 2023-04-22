@@ -1,15 +1,16 @@
 """dask4dvc experiment handling."""
-from dvc.repo.experiments.queue import tasks
-import dvc.repo
 import dataclasses
-import dvc.cli
 import functools
 import logging
 from unittest.mock import patch
-from dask4dvc import dvc_repro
-from dvc.repo.experiments.executor.base import ExecutorInfo, BaseExecutor
+
+import dvc.cli
+import dvc.repo
+from dvc.repo.experiments.executor.base import BaseExecutor, ExecutorInfo
+from dvc.repo.experiments.queue import tasks
 from dvc.utils.serialize import load_json
 
+from dask4dvc import dvc_repro
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,16 @@ def run_single_experiment(client, name: str = None) -> None:
 
     tasks.collect_exp(None, entry_dict)
     tasks.cleanup_exp(executor, infofile)  # TODO have an option to not clean up!
+
+    # clean up celery queue
+
+    for msg in queue.celery.iter_queued():
+        if msg.headers.get("task") != tasks.run_exp.name:
+            continue
+        args, kwargs, _embed = msg.decode()
+        entry_dict = kwargs.get("entry_dict", args[0])
+        if entry_dict["name"] == name:
+            queue.celery.reject(msg.delivery_tag)
 
 
 # repo.reproduce -> list[dvc.stage.PipelineStage]
