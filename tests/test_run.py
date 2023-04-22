@@ -112,3 +112,18 @@ def test_run_multiple_experiments(
 
     exp2["InputsToOutputs"].output == 5
     exp2["InputsToOutputs_1"].output == 6
+
+
+def test_run_all_experiments(
+    queued_experiments_repo: typing.List[Experiment],
+) -> None:
+    """Test the 'dask4dvc run-multiple-experiments' command."""
+    exp1, exp2 = queued_experiments_repo
+    result = runner.invoke(app, ["run"])
+    assert result.exit_code == 0
+
+    exp1["InputsToOutputs"].output == 3
+    exp1["InputsToOutputs_1"].output == 4
+
+    exp2["InputsToOutputs"].output == 5
+    exp2["InputsToOutputs_1"].output == 6
