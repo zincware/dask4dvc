@@ -10,38 +10,50 @@ import dvc.repo
 from dvc.repo.experiments.executor.base import BaseExecutor, ExecutorInfo
 from dvc.repo.experiments.queue import tasks
 from dvc.utils.serialize import load_json
+import typing
+import time
+
+from dvc.repo.experiments.executor.base import ExecutorInfo
+from dvc.repo.experiments.executor.local import TempDirExecutor
+
+from dvc.repo.experiments.queue.base import BaseStashQueue, QueueEntry
 
 from dask4dvc import dvc_repro
 
 logger = logging.getLogger(__name__)
 
 
-def run_single_experiment(name: str = None) -> None:
-    """Run a single experiment from the queue."""
-    client = dask.distributed.get_client()
-    repo = dvc.repo.Repo()  # use with?
-    queue = repo.experiments.celery_queue
-    if name is None:
-        entry = next(iter(queue.iter_queued()))
+def _get_entry_info_file(name: str):
+    with dvc.repo.Repo() as repo:
+        queue = repo.experiments.celery_queue
+        items = list(queue.iter_queued())
+    for entry in items:
+        if entry.name == name:
+            break
     else:
-        for entry in queue.iter_queued():
-            if entry.name == name:
-                break
-        else:
-            raise ValueError(f"Experiment {name} not found")
+        raise KeyError(f"Experiment {name} not found in {items}")
 
-    infofile = queue.get_infofile_path(entry.stash_rev)
+    return entry, queue.get_infofile_path(entry.stash_rev)
 
+
+def setup_experiment(name: str, entries) -> str:
+    entry, infofile = entries
     entry_dict = dataclasses.asdict(entry)
+    tasks.setup_exp(entry_dict)
 
-    executor = tasks.setup_exp(entry_dict)
+    return name
 
+
+def run_experiment(name: str, entries) -> str:
+    entry, infofile = entries
     # ["exp", "exec-run", "--infofile", infofile]
+    client = dask.distributed.get_client()
+
+    info = ExecutorInfo.from_dict(load_json(infofile))
     with patch(
         "dvc.repo.reproduce.reproduce",
-        wraps=functools.partial(dvc_repro.reproduce, client=client),
+        wraps=functools.partial(dvc_repro.reproduce, client=client, prefix=name),
     ):
-        info = ExecutorInfo.from_dict(load_json(infofile))
         BaseExecutor.reproduce(
             info=info,
             rev="",
@@ -51,15 +63,46 @@ def run_single_experiment(name: str = None) -> None:
             copy_paths=None,  # self.args.copy_paths,
         )
 
-    tasks.collect_exp(None, entry_dict)
-    tasks.cleanup_exp(executor, infofile)  # TODO have an option to not clean up!
+    return name
 
-    # clean up celery queue
 
-    for msg in queue.celery.iter_queued():
-        if msg.headers.get("task") != tasks.run_exp.name:
-            continue
-        args, kwargs, _embed = msg.decode()
-        entry_dict = kwargs.get("entry_dict", args[0])
-        if entry_dict["name"] == name:
-            queue.celery.reject(msg.delivery_tag)
+def collect_exp(name, entries) -> str:
+    entry, infofile = entries
+    tasks.collect_exp(None, dataclasses.asdict(entry))
+    return name
+
+
+def cleanup_exp(name, entries):
+    entry, infofile = entries
+    with dvc.repo.Repo() as repo:
+        queue = repo.experiments.celery_queue
+        executor = BaseStashQueue.init_executor(
+            repo.experiments,
+            entry,
+            TempDirExecutor,
+            location="dvc-task",
+        )
+        tasks.cleanup_exp(executor, infofile)
+
+        for msg in queue.celery.iter_queued():
+            if msg.headers.get("task") != tasks.run_exp.name:
+                continue
+            args, kwargs, _embed = msg.decode()
+            entry_dict = kwargs.get("entry_dict", args[0])
+            if entry_dict["name"] == name:
+                queue.celery.reject(msg.delivery_tag)
+
+
+def run_single_experiment(name: str = None) -> None:
+    """Run a single experiment from the queue."""
+    client = dask.distributed.get_client()
+
+    entries = client.submit(_get_entry_info_file, name, retries=100)
+    a = client.submit(setup_experiment, name=name, entries=entries)
+    # x = dask.distributed.Variable("name")
+    # x.set(a)
+    b = client.submit(run_experiment, name=a, entries=entries)
+    c = client.submit(collect_exp, name=b, entries=entries)
+    d = client.submit(cleanup_exp, name=c, entries=entries)
+
+    return d

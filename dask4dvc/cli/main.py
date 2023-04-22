@@ -78,8 +78,8 @@ def run(
     """Run DVC experiments in parallel using dask."""
     # TODO do not wait for results and then submit next, but do all in parallel
     if len(targets) == 0:
-        repo = dvc.repo.Repo()
-        targets = [x.name for x in repo.experiments.celery_queue.iter_queued()]
+        with dvc.repo.Repo() as repo:
+            targets = [x.name for x in repo.experiments.celery_queue.iter_queued()]
 
     if config is not None:
         assert address is None, "Can not use address and config file"
@@ -92,9 +92,7 @@ def run(
         results = {}
 
         for target in targets:
-            results[target] = client.submit(
-                dvc_queue.run_single_experiment, target, key=f"exp_{target}"
-            )
+            results[target] = dvc_queue.run_single_experiment(target)
             utils.dask.wait_for_futures(client, results[target])
         if not leave:
             utils.main.wait()
