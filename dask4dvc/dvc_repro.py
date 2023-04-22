@@ -16,6 +16,8 @@ from dvc.stage.cache import RunCacheNotFoundError
 import random
 import time
 import subprocess
+import os
+import uuid
 
 from dask4dvc import utils
 
@@ -66,8 +68,7 @@ def _load_run_cache(repo: dvc.repo.Repo, stage: dvc.stage.Stage) -> None:
         with repo.scm_context():
             repo.stage_cache.restore(stage=stage)
             log.info(
-                f"Stage '{stage.addressing}' is cached - skipping run, checking out"
-                " outputs "
+                f"Stage '{stage.name}' is cached - skipping run, checking out outputs "
             )
 
 
@@ -75,6 +76,7 @@ def submit_stage(
     name: str, force: bool, successors: list, root_dir: str
 ) -> typing.List[str]:
     """Submit a stage to the Dask cluster."""
+    os.chdir(root_dir)
     repo = dvc.repo.Repo(root_dir)
 
     if force:
@@ -104,23 +106,26 @@ def submit_stage(
             # add the stage to the run cache
             _run_locked_cmd(repo, repo.commit, name, force=True)
 
-    return [x.addressing for x in stages]
+    return [x.name for x in stages]
 
 
 def reproduce(
-    client: dask.distributed.Client,
     repo: dvc.repo.Repo,
     targets=None,
     recursive=False,
     pipeline=False,
     all_pipelines=False,
     after_repro_callback=None,  # TODO
+    client: dask.distributed.Client = None,
     **kwargs,
 ) -> typing.List[dvc.stage.PipelineStage]:
     """Parallel Exectuion drop-in replacement for 'dvc.repo.Repo.reproduce'.
 
     Use with functools.partial to set the client
     """
+    print("GOT HERE!")
+    print(kwargs)
+
     if targets is None:
         targets = []
     mapping = parallel_submit(
@@ -129,6 +134,8 @@ def reproduce(
     results: typing.Dict[str, list] = utils.dask.wait_for_futures(mapping)
     result = []
     for stages in results.values():
+        if isinstance(stages, str):  # TODO this should always be a list
+            stages = [stages]
         result.extend([repo.stage.get_target(x) for x in stages])
     return result
 
@@ -147,6 +154,8 @@ def parallel_submit(
 
     nodes = _get_steps(repo.index.graph, targets, downstream=False, single_item=False)
 
+    experiment_name = uuid.uuid4().hex[:8]  # TODO experiment name instead of uuid
+
     for node in nodes:
         if node.cmd is None:
             # if the stage doesn't have a command, e.g. a dvc tracked file
@@ -159,16 +168,20 @@ def parallel_submit(
 
         mapping[node] = client.submit(
             submit_stage,
-            node.addressing,
+            node.name,
             force=force,
             root_dir=repo.root_dir,
             successors=successors,
             pure=False,
-            key=node.addressing,
+            key=f"{experiment_name}_{node.name}",
         )
 
     mapping = {
-        node.addressing: future for node, future in mapping.items() if future is not None
+        node.name: future for node, future in mapping.items() if future is not None
     }
+
+    # print("Submitted stages:")
+    # print(mapping)
+    # print("Waiting for stages to finish...")
 
     return mapping

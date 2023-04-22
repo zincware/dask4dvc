@@ -7,6 +7,7 @@ import dask.distributed
 import typer
 import typing
 from dask4dvc import dvc_repro, utils, dvc_queue
+import dvc.repo
 
 
 app = typer.Typer()
@@ -64,10 +65,24 @@ def repro(
 @app.command()
 def run(
     targets: typing.List[str] = typer.Argument(None),
+    address: str = typer.Option(None, help=Help.address),
+    config: str = typer.Option(None, help=Help.config),
 ) -> None:
     """Run DVC experiments in parallel using dask."""
-    for target in targets:
-        dvc_queue.run_single_experiment(target)
+    # TODO fix pytest
+    # TODO do not wait for results and then submit next, but do all in parallel
+    if len(targets) == 0:
+        repo = dvc.repo.Repo()
+        targets = [x.name for x in repo.experiments.celery_queue.iter_queued()]
+
+    if config is not None:
+        assert address is None, "Can not use address and config file"
+        address = utils.dask.get_cluster_from_config(config)
+
+    typer.echo(f"Running {targets}.")
+    with dask.distributed.Client(address) as client:
+        for target in targets:
+            dvc_queue.run_single_experiment(client, target)
 
 
 def version_callback(value: bool) -> None:
