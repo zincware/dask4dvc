@@ -81,6 +81,10 @@ def run(
         with dvc.repo.Repo() as repo:
             targets = [x.name for x in repo.experiments.celery_queue.iter_queued()]
 
+    if len(targets) == 0:
+        typer.echo("No experiments to run.")
+        raise typer.Exit()
+
     if config is not None:
         assert address is None, "Can not use address and config file"
         address = utils.dask.get_cluster_from_config(config)

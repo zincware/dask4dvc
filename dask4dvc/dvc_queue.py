@@ -52,7 +52,9 @@ def run_experiment(name: str, entries) -> str:
     info = ExecutorInfo.from_dict(load_json(infofile))
     with patch(
         "dvc.repo.reproduce.reproduce",
-        wraps=functools.partial(dvc_repro.reproduce, client=client, prefix=name),
+        wraps=functools.partial(
+            dvc_repro.reproduce, client=client, prefix=name.replace("-", "_")
+        ),
     ):
         BaseExecutor.reproduce(
             info=info,
@@ -96,13 +98,16 @@ def cleanup_exp(name, entries):
 def run_single_experiment(name: str = None) -> None:
     """Run a single experiment from the queue."""
     client = dask.distributed.get_client()
+    prefix = name.replace("-", "_")
 
-    entries = client.submit(_get_entry_info_file, name, retries=100)
-    a = client.submit(setup_experiment, name=name, entries=entries)
-    # x = dask.distributed.Variable("name")
-    # x.set(a)
-    b = client.submit(run_experiment, name=a, entries=entries)
-    c = client.submit(collect_exp, name=b, entries=entries)
-    d = client.submit(cleanup_exp, name=c, entries=entries)
+    entries = client.submit(
+        _get_entry_info_file, name, retries=100, key=f"{prefix}_get_queue"
+    )
+    a = client.submit(setup_experiment, name=name, entries=entries, key=f"{prefix}_setup")
+    x = dask.distributed.Variable(prefix)
+    x.set(a)
+    b = client.submit(run_experiment, name=a, entries=entries, key=f"{prefix}_run")
+    c = client.submit(collect_exp, name=b, entries=entries, key=f"{prefix}_collect")
+    d = client.submit(cleanup_exp, name=c, entries=entries, key=f"{prefix}_cleanup")
 
     return d

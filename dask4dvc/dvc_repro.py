@@ -169,8 +169,8 @@ def parallel_submit(
             mapping[successor] for successor in repo.index.graph.successors(node)
         ]
 
-        # if len(successors) == 0:
-        #     successors = [dask.distributed.Variable(prefix.replace("_", "-")).get()]
+        if len(successors) == 0 and prefix is not None:
+            successors = [dask.distributed.Variable(prefix).get()]
         # https://docs.dask.org/en/stable/futures.html#distributed.Variable to connect to main graph
 
         mapping[node] = client.submit(
