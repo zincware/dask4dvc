@@ -74,6 +74,10 @@ def run(
     config: str = typer.Option(None, help=Help.config),
     dashboard: bool = typer.Option(False, help=Help.dashboard),
     leave: bool = typer.Option(True, help=Help.leave),
+    max_workers: int = typer.Option(None, help=Help.max_workers),
+    parallel: bool = typer.Option(
+        False, help="Run experiments in parallel. Some experiments might fail!"
+    ),
 ) -> None:
     """Run DVC experiments in parallel using dask."""
     # TODO do not wait for results and then submit next, but do all in parallel
@@ -93,11 +97,16 @@ def run(
     with dask.distributed.Client(address) as client:
         if dashboard:
             webbrowser.open(client.dashboard_link)
+        if max_workers is not None:
+            client.cluster.adapt(minimum=1, maximum=max_workers)
         results = {}
 
         for target in targets:
             results[target] = dvc_queue.run_single_experiment(target)
-            utils.dask.wait_for_futures(client, results[target])
+            if not parallel:
+                utils.dask.wait_for_futures(client, results[target])
+        if parallel:
+            utils.dask.wait_for_futures(client, results)
         if not leave:
             utils.main.wait()
 

@@ -8,15 +8,10 @@ import dask.distributed
 import dvc.cli
 import dvc.repo
 from dvc.repo.experiments.executor.base import BaseExecutor, ExecutorInfo
-from dvc.repo.experiments.queue import tasks
-from dvc.utils.serialize import load_json
-import typing
-import time
-
-from dvc.repo.experiments.executor.base import ExecutorInfo
 from dvc.repo.experiments.executor.local import TempDirExecutor
-
-from dvc.repo.experiments.queue.base import BaseStashQueue, QueueEntry
+from dvc.repo.experiments.queue import tasks
+from dvc.repo.experiments.queue.base import BaseStashQueue
+from dvc.utils.serialize import load_json
 
 from dask4dvc import dvc_repro
 
@@ -95,19 +90,37 @@ def cleanup_exp(name, entries):
                 queue.celery.reject(msg.delivery_tag)
 
 
-def run_single_experiment(name: str = None) -> None:
+def run_single_experiment(name: str = None, helper_retries: int = 100) -> None:
     """Run a single experiment from the queue."""
     client = dask.distributed.get_client()
     prefix = name.replace("-", "_")
 
     entries = client.submit(
-        _get_entry_info_file, name, retries=100, key=f"{prefix}_get_queue"
+        _get_entry_info_file, name, retries=helper_retries, key=f"{prefix}_get_queue"
     )
-    a = client.submit(setup_experiment, name=name, entries=entries, key=f"{prefix}_setup")
+    a = client.submit(
+        setup_experiment,
+        name=name,
+        entries=entries,
+        key=f"{prefix}_setup",
+        retries=helper_retries,
+    )
     x = dask.distributed.Variable(prefix)
     x.set(a)
     b = client.submit(run_experiment, name=a, entries=entries, key=f"{prefix}_run")
-    c = client.submit(collect_exp, name=b, entries=entries, key=f"{prefix}_collect")
-    d = client.submit(cleanup_exp, name=c, entries=entries, key=f"{prefix}_cleanup")
+    c = client.submit(
+        collect_exp,
+        name=b,
+        entries=entries,
+        key=f"{prefix}_collect",
+        retries=helper_retries,
+    )
+    d = client.submit(
+        cleanup_exp,
+        name=c,
+        entries=entries,
+        key=f"{prefix}_cleanup",
+        retries=helper_retries,
+    )
 
     return d
