@@ -85,6 +85,33 @@ def queued_experiments_repo(repo_path: pathlib.Path) -> typing.List[Experiment]:
     return [exp1, exp2]
 
 
+@pytest.fixture
+def large_queued_experiments_repo(repo_path: pathlib.Path) -> typing.List[Experiment]:
+    """Prepare a repo with queued experiments."""
+    with zntrack.Project(automatic_node_names=True) as project:
+        data1 = CreateData(inputs=1)
+        data2 = CreateData(inputs=2)
+
+        InputsToOutputs(inputs=data1.output)
+        InputsToOutputs(inputs=data2.output)
+
+    project.run()
+
+    repo = git.Repo()
+    repo.git.add(all=True)
+    repo.index.commit("Initial Commit")
+
+    experiments = []
+    for i in range(100):
+        with project.create_experiment() as exp:
+            data1.inputs = i
+            data2.inputs = -i
+
+        experiments.append(exp)
+
+    return experiments
+
+
 def test_run_single_experiment(queued_experiments_repo: typing.List[Experiment]) -> None:
     """Test the 'dask4dvc run-single-experiment' command."""
     exp1, exp2 = queued_experiments_repo
@@ -127,3 +154,16 @@ def test_run_all_experiments(
 
     exp2["InputsToOutputs"].output == 5
     exp2["InputsToOutputs_1"].output == 6
+
+
+@pytest.mark.skip(reason="very slow and no additional coverage")
+def test_run_large_queued_experiments(
+    large_queued_experiments_repo: typing.List[Experiment],
+) -> None:
+    """Test the 'dask4dvc run-multiple-experiments' command."""
+    result = runner.invoke(app, ["run"])
+    assert result.exit_code == 0
+
+    for idx, exp in enumerate(large_queued_experiments_repo):
+        exp["InputsToOutputs"].output == idx
+        exp["InputsToOutputs_1"].output == -idx
