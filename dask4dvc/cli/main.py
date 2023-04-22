@@ -81,8 +81,7 @@ def run(
 
     typer.echo(f"Running {targets}.")
     with dask.distributed.Client(address) as client:
-        for target in targets:
-            dvc_queue.run_single_experiment(client, target)
+        dvc_queue.run_multiple_experiments(client, targets)
 
 
 def version_callback(value: bool) -> None:
