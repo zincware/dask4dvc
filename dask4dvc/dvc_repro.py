@@ -121,7 +121,7 @@ def reproduce(
 ) -> typing.List[dvc.stage.PipelineStage]:
     """Parallel Exectuion drop-in replacement for 'dvc.repo.Repo.reproduce'.
 
-    Use with functools.partial to set the client
+    Use with functools.partial to set the client and prefix
     """
     if targets is None:
         targets = []
@@ -135,7 +135,7 @@ def reproduce(
     results: typing.Dict[str, list] = utils.dask.wait_for_futures(client, mapping)
     result = []
     for stages in results.values():
-        if isinstance(stages, str):  # TODO this should always be a list
+        if isinstance(stages, str):  # TODO this should always be a list?
             stages = [stages]
         result.extend([repo.stage.get_target(x) for x in stages])
     return result
@@ -182,9 +182,5 @@ def parallel_submit(
     mapping = {
         node.name: future for node, future in mapping.items() if future is not None
     }
-
-    # print("Submitted stages:")
-    # print(mapping)
-    # print("Waiting for stages to finish...")
 
     return mapping

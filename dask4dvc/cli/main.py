@@ -3,6 +3,7 @@
 import importlib.metadata
 import logging
 import typing
+import webbrowser
 
 import dask.distributed
 import dvc.repo
@@ -32,6 +33,7 @@ class Help:
         "Maximum number of workers to use. Using '1' will be the same as 'dvc repro' but"
         " slower."
     )
+    dashboard: str = "Open Dask Dashboard in Browser"
 
 
 @app.command()
@@ -43,6 +45,7 @@ def repro(
     max_workers: int = typer.Option(None, help=Help.max_workers),
     retries: int = typer.Option(10, help=Help.retries),
     force: bool = typer.Option(False, "--force/", "-f/", help="use `dvc repro --force`"),
+    dashboard: bool = typer.Option(False, help=Help.dashboard),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     utils.CONFIG.retries = retries
@@ -52,6 +55,8 @@ def repro(
         address = utils.dask.get_cluster_from_config(config)
 
     with dask.distributed.Client(address) as client:
+        if dashboard:
+            webbrowser.open(client.dashboard_link)
         if max_workers is not None:
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
@@ -67,9 +72,9 @@ def run(
     targets: typing.List[str] = typer.Argument(None),
     address: str = typer.Option(None, help=Help.address),
     config: str = typer.Option(None, help=Help.config),
+    dashboard: bool = typer.Option(False, help=Help.dashboard),
 ) -> None:
     """Run DVC experiments in parallel using dask."""
-    # TODO fix pytest
     # TODO do not wait for results and then submit next, but do all in parallel
     if len(targets) == 0:
         repo = dvc.repo.Repo()
@@ -81,7 +86,12 @@ def run(
 
     typer.echo(f"Running {targets}.")
     with dask.distributed.Client(address) as client:
-        dvc_queue.run_multiple_experiments(client, targets)
+        if dashboard:
+            webbrowser.open(client.dashboard_link)
+        results = {}
+        for target in targets:
+            results[target] = client.submit(dvc_queue.run_single_experiment, target)
+            utils.dask.wait_for_futures(client, results[target])
 
 
 def version_callback(value: bool) -> None:

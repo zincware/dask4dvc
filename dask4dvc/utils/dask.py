@@ -5,7 +5,7 @@ import typing
 
 import dask_jobqueue
 import yaml
-from dask.distributed import Client, Future
+from dask.distributed import Client, Future, wait
 
 log = logging.getLogger(__name__)
 
@@ -21,6 +21,8 @@ def wait_for_futures(
     """
     if isinstance(futures, Future):
         futures = {"main": futures}
+
+    wait(list(futures.values()))
 
     results = {}
     for name, future in futures.items():
