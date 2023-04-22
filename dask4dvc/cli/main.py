@@ -73,6 +73,7 @@ def run(
     address: str = typer.Option(None, help=Help.address),
     config: str = typer.Option(None, help=Help.config),
     dashboard: bool = typer.Option(False, help=Help.dashboard),
+    leave: bool = typer.Option(True, help=Help.leave),
 ) -> None:
     """Run DVC experiments in parallel using dask."""
     # TODO do not wait for results and then submit next, but do all in parallel
@@ -89,9 +90,14 @@ def run(
         if dashboard:
             webbrowser.open(client.dashboard_link)
         results = {}
+
         for target in targets:
-            results[target] = client.submit(dvc_queue.run_single_experiment, target)
+            results[target] = client.submit(
+                dvc_queue.run_single_experiment, target, key=f"exp_{target}"
+            )
             utils.dask.wait_for_futures(client, results[target])
+        if not leave:
+            utils.main.wait()
 
 
 def version_callback(value: bool) -> None:
