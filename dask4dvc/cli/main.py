@@ -57,7 +57,7 @@ def repro(
         log.info(client)
         results = dvc_repro.parallel_submit(client, targets=targets, force=force)
 
-        utils.dask.wait_for_futures(results)
+        utils.dask.wait_for_futures(client, results)
         if not leave:
             utils.main.wait()
 

@@ -8,7 +8,6 @@ import random
 import subprocess
 import time
 import typing
-import uuid
 
 import dask.distributed
 import dvc.exceptions
@@ -117,21 +116,23 @@ def reproduce(
     all_pipelines=False,
     after_repro_callback=None,  # TODO
     client: dask.distributed.Client = None,
+    prefix: str = None,
     **kwargs,
 ) -> typing.List[dvc.stage.PipelineStage]:
     """Parallel Exectuion drop-in replacement for 'dvc.repo.Repo.reproduce'.
 
     Use with functools.partial to set the client
     """
-    print("GOT HERE!")
-    print(kwargs)
-
     if targets is None:
         targets = []
     mapping = parallel_submit(
-        client, targets, force=kwargs.get("force", False), root_dir=repo.root_dir
+        client,
+        targets,
+        force=kwargs.get("force", False),
+        root_dir=repo.root_dir,
+        prefix=prefix,
     )
-    results: typing.Dict[str, list] = utils.dask.wait_for_futures(mapping)
+    results: typing.Dict[str, list] = utils.dask.wait_for_futures(client, mapping)
     result = []
     for stages in results.values():
         if isinstance(stages, str):  # TODO this should always be a list
@@ -141,7 +142,11 @@ def reproduce(
 
 
 def parallel_submit(
-    client: dask.distributed.Client, targets: list[str], force: bool, root_dir: str = None
+    client: dask.distributed.Client,
+    targets: list[str],
+    force: bool,
+    root_dir: str = None,
+    prefix: str = None,
 ) -> typing.Dict[str, dask.distributed.Future]:
     """Submit all stages to the Dask cluster."""
     mapping = {}
@@ -153,8 +158,6 @@ def parallel_submit(
         targets = [repo.stage.get_target(x) for x in targets]
 
     nodes = _get_steps(repo.index.graph, targets, downstream=False, single_item=False)
-
-    experiment_name = uuid.uuid4().hex[:8]  # TODO experiment name instead of uuid
 
     for node in nodes:
         if node.cmd is None:
@@ -173,7 +176,7 @@ def parallel_submit(
             root_dir=repo.root_dir,
             successors=successors,
             pure=False,
-            key=f"{experiment_name}_{node.name}",
+            key=f"{prefix}_{node.name}" if prefix else node.name,
         )
 
     mapping = {

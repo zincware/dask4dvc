@@ -5,12 +5,14 @@ import typing
 
 import dask_jobqueue
 import yaml
-from dask.distributed import Future
+from dask.distributed import Client, Future
 
 log = logging.getLogger(__name__)
 
 
-def wait_for_futures(futures: typing.Union[Future, typing.Dict[str, Future]]) -> dict:
+def wait_for_futures(
+    client: Client, futures: typing.Union[Future, typing.Dict[str, Future]]
+) -> dict:
     """Wait for all given future objects to complete.
 
     Raises
@@ -23,7 +25,7 @@ def wait_for_futures(futures: typing.Union[Future, typing.Dict[str, Future]]) ->
     results = {}
     for name, future in futures.items():
         try:
-            results[name] = future.result()
+            results[name] = client.gather(future)
         except Exception as err:
             log.critical(f"Waiting for result from '{future}' failed with {err}")
     return results

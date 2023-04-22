@@ -2,21 +2,41 @@
 import dataclasses
 import functools
 import logging
+import typing
 from unittest.mock import patch
 
-import typing
+import dask.distributed
 import dvc.cli
 import dvc.repo
 from dvc.repo.experiments.executor.base import BaseExecutor, ExecutorInfo
 from dvc.repo.experiments.queue import tasks
 from dvc.utils.serialize import load_json
 
-from dask4dvc import dvc_repro
+from dask4dvc import dvc_repro  # , utils
 
 logger = logging.getLogger(__name__)
 
+# def _reproduce(infofile):
+#     client = dask.distributed.get_client()
+#     with patch(
+#         "dvc.repo.reproduce.reproduce",
+#         wraps=functools.partial(dvc_repro.reproduce, client=client),
+#         ):
+#             info = ExecutorInfo.from_dict(load_json(infofile))
+#             result = BaseExecutor.reproduce(
+#                 info=info,
+#                 rev="",
+#                 queue=None,
+#                 log_level=logging.CRITICAL, #logger.getEffectiveLevel(),
+#                 infofile=infofile,
+#                 copy_paths=None,  # self.args.copy_paths,
+#             )
+#     return result
 
-def run_multiple_experiments(client, targets: typing.List[str]) -> typing.List[str]:
+
+def run_multiple_experiments(
+    client: dask.distributed.Client, targets: typing.List[str]
+) -> typing.List[str]:
     repo = dvc.repo.Repo()
     queue = repo.experiments.celery_queue
     entries = []
@@ -24,28 +44,36 @@ def run_multiple_experiments(client, targets: typing.List[str]) -> typing.List[s
         if entry.name in targets:
             entries.append(entry)
 
-    infofiles = {} 
-    executors = {}   
+    infofiles = {}
+    executors = {}
     for entry in entries:
-        infofiles[entry.name] = queue.get_infofile_path(entry.stash_rev)
         executors[entry.name] = tasks.setup_exp(dataclasses.asdict(entry))
-    
-    for infofile in infofiles.values():
+
+    results = {}
+    for entry in entries:
+        # results[infofile] = client.submit(_reproduce, infofile)
         # TODO submit to dask
+        infofiles[entry.name] = queue.get_infofile_path(entry.stash_rev)
+
         with patch(
-        "dvc.repo.reproduce.reproduce",
-        wraps=functools.partial(dvc_repro.reproduce, client=client),
+            "dvc.repo.reproduce.reproduce",
+            wraps=functools.partial(
+                dvc_repro.reproduce, client=client, prefix=entry.name.replace("-", "_")
+            ),
         ):
-            info = ExecutorInfo.from_dict(load_json(infofile))
-            BaseExecutor.reproduce(
+            info = ExecutorInfo.from_dict(load_json(infofiles[entry.name]))
+            results[entry.name] = BaseExecutor.reproduce(
                 info=info,
                 rev="",
                 queue=None,
                 log_level=logger.getEffectiveLevel(),
-                infofile=infofile,
+                infofile=infofiles[entry.name],
                 copy_paths=None,  # self.args.copy_paths,
             )
-    
+
+    # TODO handle successful und failed runs differently!
+    # utils.dask.wait_for_futures(client, results)
+
     for entry in entries:
         tasks.collect_exp(None, dataclasses.asdict(entry))
     for executor, infofile in zip(executors.values(), infofiles.values()):
@@ -60,7 +88,6 @@ def run_multiple_experiments(client, targets: typing.List[str]) -> typing.List[s
             entry_dict = kwargs.get("entry_dict", args[0])
             if entry_dict["name"] == entry.name:
                 queue.celery.reject(msg.delivery_tag)
-
 
 
 def run_single_experiment(client, name: str = None) -> None:
