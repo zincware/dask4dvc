@@ -1,12 +1,13 @@
 """Test the 'dask4dvc' CLI."""
+import pathlib
+import random
+
+import dvc.cli
+import pytest
+import zntrack
 from typer.testing import CliRunner
 
 from dask4dvc.cli.main import app
-import zntrack
-import pytest
-import pathlib
-import random
-import dvc.cli
 
 runner = CliRunner()
 

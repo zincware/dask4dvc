@@ -2,11 +2,12 @@
 import importlib.metadata
 import logging
 import sys
+
 import dvc.logger
 
-from dask4dvc import cli, methods, utils
+from dask4dvc import cli, dvc_repro, utils
 
-__all__ = ["cli", "utils", "methods"]
+__all__ = ["cli", "utils", "dvc_repro"]
 
 __version__ = importlib.metadata.version("dask4dvc")
 

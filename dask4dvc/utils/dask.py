@@ -5,12 +5,14 @@ import typing
 
 import dask_jobqueue
 import yaml
-from dask.distributed import Future
+from dask.distributed import Client, Future, wait
 
 log = logging.getLogger(__name__)
 
 
-def wait_for_futures(futures: typing.Union[Future, typing.Dict[str, Future]]) -> None:
+def wait_for_futures(
+    client: Client, futures: typing.Union[Future, typing.Dict[str, Future]]
+) -> dict:
     """Wait for all given future objects to complete.
 
     Raises
@@ -20,11 +22,15 @@ def wait_for_futures(futures: typing.Union[Future, typing.Dict[str, Future]]) ->
     if isinstance(futures, Future):
         futures = {"main": futures}
 
-    for future in futures.values():
+    wait(list(futures.values()))
+
+    results = {}
+    for name, future in futures.items():
         try:
-            _ = future.result()
+            results[name] = client.gather(future)
         except Exception as err:
             log.critical(f"Waiting for result from '{future}' failed with {err}")
+    return results
 
 
 def get_cluster_from_config(file: str) -> dask_jobqueue.core.JobQueueCluster:

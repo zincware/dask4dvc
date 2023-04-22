@@ -9,12 +9,19 @@ The `dask4dvc` package combines [Dask Distributed](https://distributed.dask.org/
 
 The `dask4dvc` package will try to run the DVC graph in parallel.
 
-> :warning: dask4dvc will disbale a few of the checks that DVC implements. Do not make changes to your workspace during the runtime of `dask4dvc repro`.
+> :warning: This is an experimental package **not** affiliated in any way with iterative or DVC. ``dask4dvc`` will disbale a few of the checks that DVC implements. Do not make changes to your workspace during the runtime of `dask4dvc`.
 
 ## Usage
 Dask4DVC provides a CLI similar to DVC.
 
 - `dvc repro` becomes `dask4dvc repro`.
+- `dvc queue start --jobs 1` becomes `dask4dvc run`
+
+You can follow the progress using `dask4dvc <cmd> --dashboard`.
+
+> `dask4dvc run --parallel` is available for `dvc queue start --jobs <max-workers>` but it currently leads to the failure of some experiments.
+
+> The `dask4dvc` error messages are currently really sparse. For better error messages please use the DVC commands.
 
 ### SLURM Cluster
 
