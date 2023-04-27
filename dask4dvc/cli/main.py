@@ -9,7 +9,8 @@ import dask.distributed
 import dvc.repo
 import typer
 
-from dask4dvc import dvc_queue, dvc_repro, utils
+from dask4dvc import dvc_repro
+from dask4dvc.utils.dask import get_cluster_from_config, wait_for_futures
 
 app = typer.Typer()
 
@@ -23,17 +24,19 @@ class Help:
         "This can be the address of a DASK Scheduler server like '127.0.0.1:31415'. If"
         " 'None' Dask will launch a new Server."
     )
-    parallel: str = (
-        "Split the DVC Graph into individual Nodes and run them in parallel if possible."
-    )
     leave: str = "Ask before stopping the client"
     config: str = "path to config file, e.g. 'dask4dvc.yaml'"
-    retries: str = "Number of retries to acquire dvc lock."
     max_workers: str = (
         "Maximum number of workers to use. Using '1' will be the same as 'dvc repro' but"
         " slower."
     )
     dashboard: str = "Open Dask Dashboard in Browser"
+
+
+@app.command()
+def clean() -> None:
+    """Remove all dask4dvc experiments from the queue."""
+    dvc_repro.remove_experiments()
 
 
 @app.command()
@@ -43,16 +46,18 @@ def repro(
     leave: bool = typer.Option(True, help=Help.leave),
     config: str = typer.Option(None, help=Help.config),
     max_workers: int = typer.Option(None, help=Help.max_workers),
-    retries: int = typer.Option(10, help=Help.retries),
-    force: bool = typer.Option(False, "--force/", "-f/", help="use `dvc repro --force`"),
     dashboard: bool = typer.Option(False, help=Help.dashboard),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
-    utils.CONFIG.retries = retries
+    if len(targets) == 0:
+        targets = None
+
+    repo = dvc.repo.Repo()
+    stages = dvc_repro.queue_consecutive_stages(repo, targets)
 
     if config is not None:
         assert address is None, "Can not use address and config file"
-        address = utils.dask.get_cluster_from_config(config)
+        address = get_cluster_from_config(config)
 
     with dask.distributed.Client(address) as client:
         if dashboard:
@@ -60,55 +65,14 @@ def repro(
         if max_workers is not None:
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
-        results = dvc_repro.parallel_submit(client, targets=targets, force=force)
 
-        utils.dask.wait_for_futures(client, results)
+        mapping, experiments = dvc_repro.parallel_submit(client, repo, stages)
+
+        wait_for_futures(client, mapping)
+        dvc_repro.remove_experiments(experiments)
+
         if not leave:
-            utils.main.wait()
-
-
-@app.command()
-def run(
-    targets: typing.List[str] = typer.Argument(None),
-    address: str = typer.Option(None, help=Help.address),
-    config: str = typer.Option(None, help=Help.config),
-    dashboard: bool = typer.Option(False, help=Help.dashboard),
-    leave: bool = typer.Option(True, help=Help.leave),
-    max_workers: int = typer.Option(None, help=Help.max_workers),
-    parallel: bool = typer.Option(
-        False, help="Run experiments in parallel. Some experiments might fail!"
-    ),
-) -> None:
-    """Run DVC experiments in parallel using dask."""
-    # TODO do not wait for results and then submit next, but do all in parallel
-    if len(targets) == 0:
-        with dvc.repo.Repo() as repo:
-            targets = [x.name for x in repo.experiments.celery_queue.iter_queued()]
-
-    if len(targets) == 0:
-        typer.echo("No experiments to run.")
-        raise typer.Exit()
-
-    if config is not None:
-        assert address is None, "Can not use address and config file"
-        address = utils.dask.get_cluster_from_config(config)
-
-    typer.echo(f"Running {targets}.")
-    with dask.distributed.Client(address) as client:
-        if dashboard:
-            webbrowser.open(client.dashboard_link)
-        if max_workers is not None:
-            client.cluster.adapt(minimum=1, maximum=max_workers)
-        results = {}
-
-        for target in targets:
-            results[target] = dvc_queue.run_single_experiment(target)
-            if not parallel:
-                utils.dask.wait_for_futures(client, results[target])
-        if parallel:
-            utils.dask.wait_for_futures(client, results)
-        if not leave:
-            utils.main.wait()
+            _ = input("Press Enter to close the client")
 
 
 def version_callback(value: bool) -> None:
