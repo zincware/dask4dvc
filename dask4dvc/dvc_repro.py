@@ -10,7 +10,7 @@ import dvc.cli
 import dvc.repo
 from dvc.repo.experiments.executor.local import TempDirExecutor
 from dvc.repo.experiments.queue import tasks
-from dvc.repo.experiments.queue.base import QueueEntry
+from dvc.repo.experiments.queue.base import QueueEntry, BaseStashQueue
 from dvc.repo.reproduce import _get_steps
 from dvc.stage import PipelineStage
 
@@ -104,14 +104,22 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
     dvc.cli.main(["exp", "remove"] + found_experiments)
 
 
-def collect_and_cleanup(
-    entry_dict: dict, executor: TempDirExecutor, infofile: str
-) -> None:
+def collect_and_cleanup(entry_dict: dict, infofile: str) -> None:
     """Collect the results of a finished experiment and clean up."""
     try:
         tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
     finally:
-        executor.cleanup(infofile)
+        entry = QueueEntry.from_dict(entry_dict)
+        with dvc.repo.Repo(entry.dvc_root) as repo:
+            # TODO: split executor.init_cache into separate subtask - we can release
+            # exp.scm_lock before DVC push
+            executor = BaseStashQueue.init_executor(
+                repo.experiments,
+                entry,
+                TempDirExecutor,
+                location="dvc-task",
+            )
+            executor.cleanup(infofile)
 
 
 def parallel_submit(
@@ -133,7 +141,7 @@ def parallel_submit(
     for stage in stages:
         log.debug(f"Preparing experiment '{stages[stage]}'")
         entry, infofile = queue_entries[stages[stage]]
-        executor = tasks.setup_exp(dataclasses.asdict(entry))
+        tasks.setup_exp(dataclasses.asdict(entry))
 
         # we use get here, because some stages won't be queued, such as dependency files
         successors = [
@@ -149,7 +157,6 @@ def parallel_submit(
 
         cleanup_data.append(
             {
-                "executor": executor,
                 "infofile": infofile,
                 "entry_dict": dataclasses.asdict(entry),
             }
@@ -174,7 +181,7 @@ def experiment_submit(
     for experiment in experiments:
         log.critical(f"Preparing experiment '{experiment}'")
         entry, infofile = queue_entries[experiment]
-        executor = tasks.setup_exp(dataclasses.asdict(entry))
+        tasks.setup_exp(dataclasses.asdict(entry))
 
         mapping[experiment] = client.submit(
             exec_run,
@@ -185,7 +192,6 @@ def experiment_submit(
         )
         cleanup_data.append(
             {
-                "executor": executor,
                 "infofile": infofile,
                 "entry_dict": dataclasses.asdict(entry),
             }
