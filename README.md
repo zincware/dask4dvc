@@ -53,3 +53,5 @@ default:
     cores: 10
     memory: 16 GB
 ```
+
+![dask4dvc repro](https://raw.githubusercontent.com/zincware/dask4dvc/main/misc/dask4dvc_1.gif "dask4dvc repro")

@@ -183,14 +183,6 @@ def experiment_submit(
             pure=False,
             key=entry.name,
         )
-        mapping[f"{entry.name}-collect"] = client.submit(
-            collect_and_cleanup,
-            entry_dict=dataclasses.asdict(entry),
-            job=mapping[experiment],
-            pure=False,
-            key=f"{entry.name}-collect",
-        )
-
         cleanup_data.append(
             {
                 "executor": executor,
