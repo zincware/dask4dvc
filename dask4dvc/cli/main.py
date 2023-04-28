@@ -60,35 +60,36 @@ def repro(
     if len(option) != 0:
         typer.echo("Additional dvc repro options are not implemented yet")
         raise typer.Exit(1)
+    try:
+        repo = dvc.repo.Repo()
+        stages = dvc_repro.queue_consecutive_stages(repo, targets, option)
 
-    repo = dvc.repo.Repo()
-    stages = dvc_repro.queue_consecutive_stages(repo, targets, option)
+        if config is not None:
+            assert address is None, "Can not use address and config file"
+            address = get_cluster_from_config(config)
 
-    if config is not None:
-        assert address is None, "Can not use address and config file"
-        address = get_cluster_from_config(config)
+        with dask.distributed.Client(address) as client:
+            if dashboard:
+                webbrowser.open(client.dashboard_link)
+            if max_workers is not None:
+                client.cluster.adapt(minimum=1, maximum=max_workers)
+            log.info(client)
 
-    with dask.distributed.Client(address) as client:
-        if dashboard:
-            webbrowser.open(client.dashboard_link)
-        if max_workers is not None:
-            client.cluster.adapt(minimum=1, maximum=max_workers)
-        log.info(client)
+            mapping, experiments = dvc_repro.parallel_submit(client, repo, stages)
 
-        mapping, experiments = dvc_repro.parallel_submit(client, repo, stages)
-
-        wait_for_futures(client, mapping)
-        if all(x.status == "finished" for x in mapping.values()):
-            log.info("All stages finished successfully")
-            # dvc.cli.main(["exp", "apply", experiments[-1]])
-            dask.distributed.wait(
-                client.submit(subprocess.check_call, ["dvc", "repro", *targets])
-            )
+            wait_for_futures(client, mapping)
+            if all(x.status == "finished" for x in mapping.values()):
+                log.info("All stages finished successfully")
+                # dvc.cli.main(["exp", "apply", experiments[-1]])
+                dask.distributed.wait(
+                    client.submit(subprocess.check_call, ["dvc", "repro", *targets])
+                )
+    finally:
         if cleanup:
             dvc_repro.remove_experiments(experiments)
 
-        if not leave:
-            _ = input("Press Enter to close the client")
+    if not leave:
+        _ = input("Press Enter to close the client")
 
 
 @app.command()
