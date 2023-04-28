@@ -83,7 +83,7 @@ def repro(
         if all(x.status == "finished" for x in mapping.values()):
             log.info("All stages finished successfully")
             # dvc.cli.main(["exp", "apply", experiments[-1]])
-            client.submit(dvc.cli.main, ["repro", *targets])
+            dask.distributed.wait(client.submit(dvc.cli.main, ["repro", *targets]))
         dvc_repro.remove_experiments(experiments)
 
         if not leave:
