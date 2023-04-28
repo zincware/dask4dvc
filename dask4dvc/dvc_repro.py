@@ -111,15 +111,8 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> N
         try:
             tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
         finally:
-            entry = QueueEntry.from_dict(entry_dict)
-            with dvc.repo.Repo(entry.dvc_root) as repo:
-                executor = BaseStashQueue.init_executor(
-                    repo.experiments,
-                    entry,
-                    TempDirExecutor,
-                    location="dvc-task",
-                )
-                executor.cleanup(infofile)
+            executor."
+            "cleanup""(infofile)
 
 
 def submit_to_dask(
