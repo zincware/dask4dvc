@@ -1,6 +1,5 @@
 """Dask4DVC to DVC repo interface."""
 import dataclasses
-import functools
 import logging
 import subprocess
 import typing
@@ -152,14 +151,14 @@ def submit_to_dask(
         key=entry.name,
     )
 
-    future.add_done_callback(
-        functools.partial(
-            collect_and_cleanup,
-            entry_dict=dataclasses.asdict(entry),
-            infofile=infofile,
-        )
+    return client.submit(
+        collect_and_cleanup,
+        future,
+        entry_dict=dataclasses.asdict(entry),
+        infofile=infofile,
+        pure=False,
+        key=f"cleanup-{entry.name}",
     )
-    return future
 
 
 def parallel_submit(
