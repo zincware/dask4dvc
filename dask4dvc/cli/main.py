@@ -6,6 +6,7 @@ import typing
 import webbrowser
 
 import dask.distributed
+import dvc.cli
 import dvc.repo
 import typer
 
@@ -47,13 +48,17 @@ def repro(
     config: str = typer.Option(None, help=Help.config),
     max_workers: int = typer.Option(None, help=Help.max_workers),
     dashboard: bool = typer.Option(False, help=Help.dashboard),
+    option: typing.List[str] = typer.Option(
+        None, "-o", "--option", help="Additional dvc repro options"
+    ),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
-    if len(targets) == 0:
-        targets = None
+    if len(option) != 0:
+        typer.echo("Additional dvc repro options are not implemented yet")
+        raise typer.Exit(1)
 
     repo = dvc.repo.Repo()
-    stages = dvc_repro.queue_consecutive_stages(repo, targets)
+    stages = dvc_repro.queue_consecutive_stages(repo, targets, option)
 
     if config is not None:
         assert address is None, "Can not use address and config file"
@@ -67,9 +72,48 @@ def repro(
         log.info(client)
 
         mapping, experiments = dvc_repro.parallel_submit(client, repo, stages)
+        # check if futures are succesful
+        dask.distributed.Future
 
         wait_for_futures(client, mapping)
+        if all(x.status == "finished" for x in mapping.values()):
+            log.info("All stages finished successfully")
+            # dvc.cli.main(["exp", "apply", experiments[-1]])
+            client.submit(dvc.cli.main, ["repro", *targets])
         dvc_repro.remove_experiments(experiments)
+
+        if not leave:
+            _ = input("Press Enter to close the client")
+
+
+@app.command()
+def run(
+    targets: typing.List[str] = typer.Argument(None),
+    address: str = typer.Option(None, help=Help.address),
+    leave: bool = typer.Option(True, help=Help.leave),
+    config: str = typer.Option(None, help=Help.config),
+    max_workers: int = typer.Option(None, help=Help.max_workers),
+    dashboard: bool = typer.Option(False, help=Help.dashboard),
+):
+    if len(targets) == 0:
+        targets = None
+
+    repo = dvc.repo.Repo()
+
+    if config is not None:
+        assert address is None, "Can not use address and config file"
+        address = get_cluster_from_config(config)
+
+    with dask.distributed.Client(address) as client:
+        if dashboard:
+            webbrowser.open(client.dashboard_link)
+        if max_workers is not None:
+            client.cluster.adapt(minimum=1, maximum=max_workers)
+        log.info(client)
+
+        mapping, _ = dvc_repro.experiment_submit(client, repo, targets)
+
+        wait_for_futures(client, mapping)
 
         if not leave:
             _ = input("Press Enter to close the client")

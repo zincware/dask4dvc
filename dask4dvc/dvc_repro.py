@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 def queue_consecutive_stages(
     repo: dvc.repo.Repo,
-    targets: typing.List[str] = None,
+    targets: typing.List[str],
     options: list = None,
 ) -> typing.Dict[PipelineStage, str]:
     """Create an experiment for each stage in the DAG.
@@ -38,7 +38,7 @@ def queue_consecutive_stages(
     typing.Dict[PipelineStage, str]
         A dictionary mapping each stage to its experiment name
     """
-    if targets is None:
+    if len(targets) == 0:
         stages = repo.index.graph.nodes
     else:
         stages = [repo.stage.get_target(x) for x in targets]
@@ -53,9 +53,13 @@ def queue_consecutive_stages(
     if options is not None:
         cmd.extend(options)
     for stage in ordered_stages:
-        name = f"{stage.name}-dask4dvc-{str(uuid.uuid4())[:8]}"
-        experiment_names[stage] = name
-        dvc.cli.main(cmd + ["--name", name, stage.name])
+        try:
+            name = f"{stage.name}-dask4dvc-{str(uuid.uuid4())[:8]}"
+            experiment_names[stage] = name
+            dvc.cli.main(cmd + ["--name", name, stage.name])
+        except AttributeError:
+            # has no attribute name
+            log.warning(f"Skipping stage {stage} because it is not a pipeline stage")
 
     return experiment_names
 
@@ -100,7 +104,7 @@ def parallel_submit(
     client: dask.distributed.Client,
     repo: dvc.repo.Repo,
     stages: typing.Dict[PipelineStage, str],
-) -> typing.Tuple(typing.Dict[PipelineStage, dask.distributed.Future], typing.List[str]):
+) -> typing.Tuple[typing.Dict[PipelineStage, dask.distributed.Future], typing.List[str]]:
     """Submit experiments in parallel."""
     mapping = {}
     queue_entries = get_all_queue_entries(repo)
@@ -111,8 +115,9 @@ def parallel_submit(
         entry, infofile = queue_entries[stages[stage]]
         tasks.setup_exp(dataclasses.asdict(entry))
 
+        # we use get here, because some stages won't be queued, such as dependency files
         successors = [
-            mapping[successor] for successor in repo.index.graph.successors(stage)
+            mapping.get(successor) for successor in repo.index.graph.successors(stage)
         ]
         mapping[stage] = client.submit(
             exec_run,
@@ -124,3 +129,26 @@ def parallel_submit(
         experiments.append(entry.name)
 
     return mapping, experiments
+
+
+def experiment_submit(
+    client: dask.distributed.Client, repo: dvc.repo.Repo, experiments: typing.List[str]
+):
+    queue_entries = get_all_queue_entries(repo)
+    if experiments is None:
+        experiments = list(queue_entries.keys())
+    mapping = {}
+    print(f"Submitting experiments: {experiments}")
+    for experiment in experiments:
+        log.critical(f"Preparing experiment '{experiment}'")
+        entry, infofile = queue_entries[experiment]
+        tasks.setup_exp(dataclasses.asdict(entry))
+
+        mapping[experiment] = client.submit(
+            exec_run,
+            infofile=infofile,
+            successors=[],
+            pure=False,
+            key=entry.name,
+        )
+    return mapping, list(mapping.keys())
