@@ -114,8 +114,6 @@ def collect_and_cleanup(
     finally:
         entry = QueueEntry.from_dict(entry_dict)
         with dvc.repo.Repo(entry.dvc_root) as repo:
-            # TODO: split executor.init_cache into separate subtask - we can release
-            # exp.scm_lock before DVC push
             executor = BaseStashQueue.init_executor(
                 repo.experiments,
                 entry,
