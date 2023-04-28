@@ -43,7 +43,9 @@ def clean() -> None:
 
 @app.command()
 def repro(
-    targets: typing.List[str] = typer.Argument(None),
+    targets: typing.List[str] = typer.Argument(
+        None, help="Name of stages to reproduce. Leave emtpy to run the full graph."
+    ),
     address: str = typer.Option(None, help=Help.address),
     leave: bool = typer.Option(True, help=Help.leave),
     config: str = typer.Option(None, help=Help.config),
@@ -52,6 +54,7 @@ def repro(
     option: typing.List[str] = typer.Option(
         None, "-o", "--option", help="Additional dvc repro options"
     ),
+    cleanup: bool = typer.Option(True, help="Remove temporary experiments when done"),
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     if len(option) != 0:
@@ -72,22 +75,17 @@ def repro(
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
 
-        mapping, experiments, cleanup_data = dvc_repro.parallel_submit(
-            client, repo, stages
-        )
-        # check if futures are succesful
-        dask.distributed.Future
+        mapping, experiments = dvc_repro.parallel_submit(client, repo, stages)
 
         wait_for_futures(client, mapping)
-        for cleanup in cleanup_data:
-            dvc_repro.collect_and_cleanup(**cleanup)
         if all(x.status == "finished" for x in mapping.values()):
             log.info("All stages finished successfully")
             # dvc.cli.main(["exp", "apply", experiments[-1]])
             dask.distributed.wait(
                 client.submit(subprocess.check_call, ["dvc", "repro", *targets])
             )
-        dvc_repro.remove_experiments(experiments)
+        if cleanup:
+            dvc_repro.remove_experiments(experiments)
 
         if not leave:
             _ = input("Press Enter to close the client")
@@ -95,14 +93,16 @@ def repro(
 
 @app.command()
 def run(
-    targets: typing.List[str] = typer.Argument(None),
+    targets: typing.List[str] = typer.Argument(
+        None, help="Name of the DVC experiments to reproduce. Leave emtpy to run all."
+    ),
     address: str = typer.Option(None, help=Help.address),
     leave: bool = typer.Option(True, help=Help.leave),
     config: str = typer.Option(None, help=Help.config),
     max_workers: int = typer.Option(None, help=Help.max_workers),
     dashboard: bool = typer.Option(False, help=Help.dashboard),
 ) -> None:
-    """Run a DVC experiment."""
+    """Replicate 'dvc queue start' using dask."""
     if len(targets) == 0:
         targets = None
 
@@ -119,12 +119,10 @@ def run(
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
 
-        mapping, _, cleanup_data = dvc_repro.experiment_submit(client, repo, targets)
+        mapping, _ = dvc_repro.experiment_submit(client, repo, targets)
 
         wait_for_futures(client, mapping)
         # dvc_repro.remove_experiments(experiments)
-        for cleanup in cleanup_data:
-            dvc_repro.collect_and_cleanup(**cleanup)
 
         if not leave:
             _ = input("Press Enter to close the client")
