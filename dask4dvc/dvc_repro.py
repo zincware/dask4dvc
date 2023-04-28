@@ -8,9 +8,8 @@ import uuid
 import dask.distributed
 import dvc.cli
 import dvc.repo
-from dvc.repo.experiments.executor.local import TempDirExecutor
 from dvc.repo.experiments.queue import tasks
-from dvc.repo.experiments.queue.base import BaseStashQueue, QueueEntry
+from dvc.repo.experiments.queue.base import QueueEntry
 from dvc.repo.reproduce import _get_steps
 from dvc.stage import PipelineStage
 
@@ -111,8 +110,7 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> N
         try:
             tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
         finally:
-            executor."
-            "cleanup""(infofile)
+            executor.cleanup(infofile)
 
 
 def submit_to_dask(
