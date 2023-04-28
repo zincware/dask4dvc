@@ -123,14 +123,27 @@ def collect_and_cleanup(
             executor.cleanup(infofile)
 
 
+def _setup_exp(entry_dict: dict, successors: list) -> None:
+    """Run dvc setup exp with kwargs for building a graph."""
+    tasks.setup_exp(entry_dict=entry_dict)
+
+
 def submit_to_dask(
     client: dask.distributed.Client, infofile: str, entry: QueueEntry, successors: list
 ) -> dask.distributed.Future:
     """Submit a queued experiment to run with Dask."""
+    setup = client.submit(
+        _setup_exp,
+        entry_dict=dataclasses.asdict(entry),
+        successors=successors,
+        pure=False,
+        key=f"setup-{entry.name}",
+    )
+
     future = client.submit(
         exec_run,
         infofile=infofile,
-        successors=successors,
+        successors=[setup],
         pure=False,
         key=entry.name,
     )
@@ -158,8 +171,6 @@ def parallel_submit(
     for stage in stages:
         log.debug(f"Preparing experiment '{stages[stage]}'")
         entry, infofile = queue_entries[stages[stage]]
-        tasks.setup_exp(dataclasses.asdict(entry))
-
         # we use get here, because some stages won't be queued, such as dependency files
         successors = [
             mapping.get(successor) for successor in repo.index.graph.successors(stage)
@@ -184,7 +195,6 @@ def experiment_submit(
     for experiment in experiments:
         log.critical(f"Preparing experiment '{experiment}'")
         entry, infofile = queue_entries[experiment]
-        tasks.setup_exp(dataclasses.asdict(entry))
 
         mapping[experiment] = submit_to_dask(client, infofile, entry, None)
 
