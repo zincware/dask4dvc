@@ -4,6 +4,7 @@ import logging
 import subprocess
 import typing
 import uuid
+import functools
 
 import dask.distributed
 import dvc.cli
@@ -104,7 +105,9 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
     dvc.cli.main(["exp", "remove"] + found_experiments)
 
 
-def collect_and_cleanup(entry_dict: dict, infofile: str) -> None:
+def collect_and_cleanup(
+    future: any = None, entry_dict: dict = None, infofile: str = None
+) -> None:
     """Collect the results of a finished experiment and clean up."""
     try:
         tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
@@ -155,12 +158,14 @@ def parallel_submit(
             key=entry.name,
         )
 
-        cleanup_data.append(
-            {
-                "infofile": infofile,
-                "entry_dict": dataclasses.asdict(entry),
-            }
+        mapping[stage].add_done_callback(
+            functools.partial(
+                collect_and_cleanup,
+                entry_dict=dataclasses.asdict(entry),
+                infofile=infofile,
+            )
         )
+
         experiments.append(entry.name)
 
     return mapping, experiments, cleanup_data
@@ -190,10 +195,11 @@ def experiment_submit(
             pure=False,
             key=entry.name,
         )
-        cleanup_data.append(
-            {
-                "infofile": infofile,
-                "entry_dict": dataclasses.asdict(entry),
-            }
+        mapping[experiment].add_done_callback(
+            functools.partial(
+                collect_and_cleanup,
+                entry_dict=dataclasses.asdict(entry),
+                infofile=infofile,
+            )
         )
     return mapping, list(mapping.keys()), cleanup_data
