@@ -5,10 +5,6 @@ import sys
 
 import dvc.logger
 
-from dask4dvc import cli, dvc_repro, utils
-
-__all__ = ["cli", "utils", "dvc_repro"]
-
 __version__ = importlib.metadata.version("dask4dvc")
 
 log = logging.getLogger(__name__)
