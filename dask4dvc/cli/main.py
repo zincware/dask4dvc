@@ -98,7 +98,8 @@ def run(
     config: str = typer.Option(None, help=Help.config),
     max_workers: int = typer.Option(None, help=Help.max_workers),
     dashboard: bool = typer.Option(False, help=Help.dashboard),
-):
+) -> None:
+    """Run a DVC experiment."""
     if len(targets) == 0:
         targets = None
 

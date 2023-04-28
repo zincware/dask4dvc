@@ -8,6 +8,7 @@ import uuid
 import dask.distributed
 import dvc.cli
 import dvc.repo
+from dvc.repo.experiments.executor.local import TempDirExecutor
 from dvc.repo.experiments.queue import tasks
 from dvc.repo.experiments.queue.base import QueueEntry
 from dvc.repo.reproduce import _get_steps
@@ -100,7 +101,9 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
             queue.celery.reject(msg.delivery_tag)
 
 
-def collect_and_cleanup(entry_dict, executor, infofile):
+def collect_and_cleanup(
+    entry_dict: dict, executor: TempDirExecutor, infofile: str
+) -> None:
     """Collect the results of a finished experiment and clean up."""
     try:
         tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
@@ -112,7 +115,11 @@ def parallel_submit(
     client: dask.distributed.Client,
     repo: dvc.repo.Repo,
     stages: typing.Dict[PipelineStage, str],
-) -> typing.Tuple[typing.Dict[PipelineStage, dask.distributed.Future], typing.List[str]]:
+) -> typing.Tuple[
+    typing.Dict[PipelineStage, dask.distributed.Future],
+    typing.List[str],
+    typing.List[dict],
+]:
     """Submit experiments in parallel."""
     mapping = {}
     queue_entries = get_all_queue_entries(repo)
@@ -160,7 +167,10 @@ def parallel_submit(
 
 def experiment_submit(
     client: dask.distributed.Client, repo: dvc.repo.Repo, experiments: typing.List[str]
-):
+) -> typing.Tuple[
+    typing.Dict[str, dask.distributed.Future], typing.List[str], typing.List[dict]
+]:
+    """Submit experiments in parallel."""
     queue_entries = get_all_queue_entries(repo)
     if experiments is None:
         experiments = list(queue_entries.keys())
