@@ -1,6 +1,5 @@
 """Dask4DVC to DVC repo interface."""
 import dataclasses
-import functools
 import logging
 import subprocess
 import typing
@@ -9,9 +8,8 @@ import uuid
 import dask.distributed
 import dvc.cli
 import dvc.repo
-from dvc.repo.experiments.executor.local import TempDirExecutor
 from dvc.repo.experiments.queue import tasks
-from dvc.repo.experiments.queue.base import BaseStashQueue, QueueEntry
+from dvc.repo.experiments.queue.base import QueueEntry
 from dvc.repo.reproduce import _get_steps
 from dvc.stage import PipelineStage
 
@@ -80,12 +78,6 @@ def get_all_queue_entries(
     }
 
 
-def exec_run(infofile: str, successors: list = None) -> None:
-    """Execute a queued experiment via its infofile."""
-    # ! Do not use dvc.cli.main
-    subprocess.check_call(["dvc", "exp", "exec-run", "--infofile", infofile])
-
-
 def remove_experiments(experiments: typing.List[str] = None) -> None:
     """Remove queued experiments."""
     repo = dvc.repo.Repo()
@@ -104,62 +96,35 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
     dvc.cli.main(["exp", "remove"] + found_experiments)
 
 
-def collect_and_cleanup(
-    future: dask.distributed.Future, entry_dict: dict, infofile: str
-) -> None:
-    """Collect the results of a finished experiment and clean up."""
-    with dask.distributed.Lock("dvc"):
-        try:
-            tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
-        finally:
-            entry = QueueEntry.from_dict(entry_dict)
-            with dvc.repo.Repo(entry.dvc_root) as repo:
-                executor = BaseStashQueue.init_executor(
-                    repo.experiments,
-                    entry,
-                    TempDirExecutor,
-                    location="dvc-task",
-                )
-                executor.cleanup(infofile)
-
-
-def _setup_exp(entry_dict: dict, successors: list) -> None:
-    """Run dvc setup exp with kwargs for building a graph."""
+def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> None:
+    """Reproduce an experiment."""
     with dask.distributed.Lock("dvc"):
         executor = tasks.setup_exp(entry_dict=entry_dict)
         log.info(
             f"Setup Experiment '{executor.info.name}' at '{executor.info.root_dir}' "
         )
 
+    subprocess.check_call(["dvc", "exp", "exec-run", "--infofile", infofile])
+
+    with dask.distributed.Lock("dvc"):
+        try:
+            tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
+        finally:
+            executor.cleanup(infofile)
+
 
 def submit_to_dask(
     client: dask.distributed.Client, infofile: str, entry: QueueEntry, successors: list
 ) -> dask.distributed.Future:
     """Submit a queued experiment to run with Dask."""
-    setup = client.submit(
-        _setup_exp,
+    return client.submit(
+        reproduce_experiment,
         entry_dict=dataclasses.asdict(entry),
-        successors=successors,
-        pure=False,
-        key=f"setup-{entry.name}",
-    )
-
-    future = client.submit(
-        exec_run,
         infofile=infofile,
-        successors=[setup],
+        successors=successors,
         pure=False,
         key=entry.name,
     )
-
-    future.add_done_callback(
-        functools.partial(
-            collect_and_cleanup,
-            entry_dict=dataclasses.asdict(entry),
-            infofile=infofile,
-        )
-    )
-    return future
 
 
 def parallel_submit(
