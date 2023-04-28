@@ -1,17 +1,17 @@
 """Dask4DVC to DVC repo interface."""
 import dataclasses
+import functools
 import logging
 import subprocess
 import typing
 import uuid
-import functools
 
 import dask.distributed
 import dvc.cli
 import dvc.repo
 from dvc.repo.experiments.executor.local import TempDirExecutor
 from dvc.repo.experiments.queue import tasks
-from dvc.repo.experiments.queue.base import QueueEntry, BaseStashQueue
+from dvc.repo.experiments.queue.base import BaseStashQueue, QueueEntry
 from dvc.repo.reproduce import _get_steps
 from dvc.stage import PipelineStage
 
@@ -129,17 +129,11 @@ def parallel_submit(
     client: dask.distributed.Client,
     repo: dvc.repo.Repo,
     stages: typing.Dict[PipelineStage, str],
-) -> typing.Tuple[
-    typing.Dict[PipelineStage, dask.distributed.Future],
-    typing.List[str],
-    typing.List[dict],
-]:
+) -> typing.Tuple[typing.Dict[PipelineStage, dask.distributed.Future], typing.List[str],]:
     """Submit experiments in parallel."""
     mapping = {}
     queue_entries = get_all_queue_entries(repo)
     experiments = []
-
-    cleanup_data = []
 
     for stage in stages:
         log.debug(f"Preparing experiment '{stages[stage]}'")
@@ -168,21 +162,19 @@ def parallel_submit(
 
         experiments.append(entry.name)
 
-    return mapping, experiments, cleanup_data
+    return mapping, experiments
 
 
 def experiment_submit(
     client: dask.distributed.Client, repo: dvc.repo.Repo, experiments: typing.List[str]
-) -> typing.Tuple[
-    typing.Dict[str, dask.distributed.Future], typing.List[str], typing.List[dict]
-]:
+) -> typing.Tuple[typing.Dict[str, dask.distributed.Future], typing.List[str]]:
     """Submit experiments in parallel."""
     queue_entries = get_all_queue_entries(repo)
     if experiments is None:
         experiments = list(queue_entries.keys())
     mapping = {}
     print(f"Submitting experiments: {experiments}")
-    cleanup_data = []
+
     for experiment in experiments:
         log.critical(f"Preparing experiment '{experiment}'")
         entry, infofile = queue_entries[experiment]
@@ -202,4 +194,4 @@ def experiment_submit(
                 infofile=infofile,
             )
         )
-    return mapping, list(mapping.keys()), cleanup_data
+    return mapping, list(mapping.keys())
