@@ -52,6 +52,7 @@ def repro(
     option: typing.List[str] = typer.Option(
         None, "-o", "--option", help="Additional dvc repro options"
     ),
+    cleanup: bool = typer.Option(True)
 ) -> None:
     """Replicate 'dvc repro' command using dask."""
     if len(option) != 0:
@@ -83,7 +84,8 @@ def repro(
             dask.distributed.wait(
                 client.submit(subprocess.check_call, ["dvc", "repro", *targets])
             )
-        dvc_repro.remove_experiments(experiments)
+        if cleanup:
+            dvc_repro.remove_experiments(experiments)
 
         if not leave:
             _ = input("Press Enter to close the client")
