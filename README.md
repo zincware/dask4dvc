@@ -7,21 +7,19 @@
 [DVC](dvc.org) provides tools for building and executing the computational graph locally through various methods. 
 The `dask4dvc` package combines [Dask Distributed](https://distributed.dask.org/) with DVC to make it easier to use with HPC managers like [Slurm](https://github.com/SchedMD/slurm).
 
-The `dask4dvc` package will try to run the DVC graph in parallel.
+The `dask4dvc repro` package will run the DVC graph in parallel where possible.
+Currently, `dask4dvc run` will not run stages per experiment sequentially.
 
-> :warning: This is an experimental package **not** affiliated in any way with iterative or DVC. ``dask4dvc`` will disbale a few of the checks that DVC implements. Do not make changes to your workspace during the runtime of `dask4dvc`.
+> :warning: This is an experimental package **not** affiliated in any way with iterative or DVC.
 
 ## Usage
 Dask4DVC provides a CLI similar to DVC.
 
 - `dvc repro` becomes `dask4dvc repro`.
-- `dvc queue start --jobs 1` becomes `dask4dvc run`
+- `dvc queue start` becomes `dask4dvc run`
 
 You can follow the progress using `dask4dvc <cmd> --dashboard`.
 
-> `dask4dvc run --parallel` is available for `dvc queue start --jobs <max-workers>` but it currently leads to the failure of some experiments.
-
-> The `dask4dvc` error messages are currently really sparse. For better error messages please use the DVC commands.
 
 ### SLURM Cluster
 
@@ -45,6 +43,7 @@ cluster.adapt()
 with this setup you can then run `dask4dvc repro --address 127.0.0.1:31415` on the example port `31415`.
 
 You can also use config files with `dask4dvc repro --config myconfig.yaml`.
+All `dask.distributed` Clusters should be supported.
 
 ```yaml
 default:
