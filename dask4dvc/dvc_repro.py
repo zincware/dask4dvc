@@ -98,6 +98,7 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
 
 def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> None:
     """Reproduce an experiment."""
+    log.info(f"Reproducing experiment '{entry_dict['name']}'")
     with dask.distributed.Lock("dvc"):
         executor = tasks.setup_exp(entry_dict=entry_dict)
         log.info(
@@ -108,6 +109,7 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> N
 
     with dask.distributed.Lock("dvc"):
         try:
+            log.info(f"Collect experiment '{entry_dict['name']}'")
             tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
         finally:
             executor.cleanup(infofile)
