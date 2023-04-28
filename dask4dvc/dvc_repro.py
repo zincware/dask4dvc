@@ -109,23 +109,25 @@ def collect_and_cleanup(
     future: dask.distributed.Future, entry_dict: dict, infofile: str
 ) -> None:
     """Collect the results of a finished experiment and clean up."""
-    try:
-        tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
-    finally:
-        entry = QueueEntry.from_dict(entry_dict)
-        with dvc.repo.Repo(entry.dvc_root) as repo:
-            executor = BaseStashQueue.init_executor(
-                repo.experiments,
-                entry,
-                TempDirExecutor,
-                location="dvc-task",
-            )
-            executor.cleanup(infofile)
+    with dask.distributed.Lock("dvc"):
+        try:
+            tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
+        finally:
+            entry = QueueEntry.from_dict(entry_dict)
+            with dvc.repo.Repo(entry.dvc_root) as repo:
+                executor = BaseStashQueue.init_executor(
+                    repo.experiments,
+                    entry,
+                    TempDirExecutor,
+                    location="dvc-task",
+                )
+                executor.cleanup(infofile)
 
 
 def _setup_exp(entry_dict: dict, successors: list) -> None:
     """Run dvc setup exp with kwargs for building a graph."""
-    tasks.setup_exp(entry_dict=entry_dict)
+    with dask.distributed.Lock("dvc"):
+        tasks.setup_exp(entry_dict=entry_dict)
 
 
 def submit_to_dask(
