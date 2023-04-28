@@ -88,7 +88,6 @@ def exec_run(infofile: str, successors: list = None) -> None:
 
 def remove_experiments(experiments: typing.List[str] = None) -> None:
     """Remove queued experiments."""
-    print(f"Removing experiments: {experiments}")
     repo = dvc.repo.Repo()
     queue = repo.experiments.celery_queue
     found_experiments = []
@@ -127,7 +126,10 @@ def collect_and_cleanup(
 def _setup_exp(entry_dict: dict, successors: list) -> None:
     """Run dvc setup exp with kwargs for building a graph."""
     with dask.distributed.Lock("dvc"):
-        tasks.setup_exp(entry_dict=entry_dict)
+        executor = tasks.setup_exp(entry_dict=entry_dict)
+        log.info(
+            f"Setup Experiment '{executor.info.name}' at '{executor.info.root_dir}' "
+        )
 
 
 def submit_to_dask(
