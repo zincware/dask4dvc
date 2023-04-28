@@ -125,6 +125,28 @@ def collect_and_cleanup(
             executor.cleanup(infofile)
 
 
+def submit_to_dask(
+    client: dask.distributed.Client, infofile: str, entry: QueueEntry, successors: list
+) -> dask.distributed.Future:
+    """Submit a queued experiment to run with Dask."""
+    future = client.submit(
+        exec_run,
+        infofile=infofile,
+        successors=successors,
+        pure=False,
+        key=entry.name,
+    )
+
+    future.add_done_callback(
+        functools.partial(
+            collect_and_cleanup,
+            entry_dict=dataclasses.asdict(entry),
+            infofile=infofile,
+        )
+    )
+    return future
+
+
 def parallel_submit(
     client: dask.distributed.Client,
     repo: dvc.repo.Repo,
@@ -144,21 +166,7 @@ def parallel_submit(
         successors = [
             mapping.get(successor) for successor in repo.index.graph.successors(stage)
         ]
-        mapping[stage] = client.submit(
-            exec_run,
-            infofile=infofile,
-            successors=successors,
-            pure=False,
-            key=entry.name,
-        )
-
-        mapping[stage].add_done_callback(
-            functools.partial(
-                collect_and_cleanup,
-                entry_dict=dataclasses.asdict(entry),
-                infofile=infofile,
-            )
-        )
+        mapping[stage] = submit_to_dask(client, infofile, entry, successors)
 
         experiments.append(entry.name)
 
@@ -180,18 +188,6 @@ def experiment_submit(
         entry, infofile = queue_entries[experiment]
         tasks.setup_exp(dataclasses.asdict(entry))
 
-        mapping[experiment] = client.submit(
-            exec_run,
-            infofile=infofile,
-            successors=[],
-            pure=False,
-            key=entry.name,
-        )
-        mapping[experiment].add_done_callback(
-            functools.partial(
-                collect_and_cleanup,
-                entry_dict=dataclasses.asdict(entry),
-                infofile=infofile,
-            )
-        )
+        mapping[experiment] = submit_to_dask(client, infofile, entry, None)
+
     return mapping, list(mapping.keys())
