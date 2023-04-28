@@ -106,7 +106,7 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
 
 
 def collect_and_cleanup(
-    future: any = None, entry_dict: dict = None, infofile: str = None
+    future: dask.distributed.Future, entry_dict: dict, infofile: str
 ) -> None:
     """Collect the results of a finished experiment and clean up."""
     try:
