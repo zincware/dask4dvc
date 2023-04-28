@@ -90,6 +90,7 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
     print(f"Removing experiments: {experiments}")
     repo = dvc.repo.Repo()
     queue = repo.experiments.celery_queue
+    found_experiments = []
     for msg in queue.celery.iter_queued():
         if msg.headers.get("task") != tasks.run_exp.name:
             continue
@@ -98,7 +99,9 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
         if (experiments is None and "-dask4dvc-" in entry_dict["name"]) or (
             experiments is not None and entry_dict["name"] in experiments
         ):
+            found_experiments.append(entry_dict["name"])
             queue.celery.reject(msg.delivery_tag)
+    dvc.cli.main(["exp", "remove"] + found_experiments)
 
 
 def collect_and_cleanup(
@@ -128,7 +131,7 @@ def parallel_submit(
     cleanup_data = []
 
     for stage in stages:
-        log.critical(f"Preparing experiment '{stages[stage]}'")
+        log.debug(f"Preparing experiment '{stages[stage]}'")
         entry, infofile = queue_entries[stages[stage]]
         executor = tasks.setup_exp(dataclasses.asdict(entry))
 
@@ -151,15 +154,6 @@ def parallel_submit(
                 "entry_dict": dataclasses.asdict(entry),
             }
         )
-        # mapping[f"{entry.name}-collect"] = client.submit(
-        #     collect_and_cleanup,
-        #     executor=executor,
-        #     infofile=infofile,
-        #     entry_dict=dataclasses.asdict(entry),
-        #     job=mapping[stage],
-        #     pure=False,
-        #     key=f"{entry.name}-collect",
-        # )
         experiments.append(entry.name)
 
     return mapping, experiments, cleanup_data
