@@ -71,11 +71,15 @@ def repro(
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
 
-        mapping, experiments = dvc_repro.parallel_submit(client, repo, stages)
+        mapping, experiments, cleanup_data = dvc_repro.parallel_submit(
+            client, repo, stages
+        )
         # check if futures are succesful
         dask.distributed.Future
 
         wait_for_futures(client, mapping)
+        for cleanup in cleanup_data:
+            dvc_repro.collect_and_cleanup(**cleanup)
         if all(x.status == "finished" for x in mapping.values()):
             log.info("All stages finished successfully")
             # dvc.cli.main(["exp", "apply", experiments[-1]])
@@ -111,9 +115,12 @@ def run(
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
 
-        mapping, _ = dvc_repro.experiment_submit(client, repo, targets)
+        mapping, _, cleanup_data = dvc_repro.experiment_submit(client, repo, targets)
 
         wait_for_futures(client, mapping)
+        # dvc_repro.remove_experiments(experiments)
+        for cleanup in cleanup_data:
+            dvc_repro.collect_and_cleanup(**cleanup)
 
         if not leave:
             _ = input("Press Enter to close the client")

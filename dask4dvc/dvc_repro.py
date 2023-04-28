@@ -100,6 +100,14 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
             queue.celery.reject(msg.delivery_tag)
 
 
+def collect_and_cleanup(entry_dict, executor, infofile):
+    """Collect the results of a finished experiment and clean up."""
+    try:
+        tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
+    finally:
+        executor.cleanup(infofile)
+
+
 def parallel_submit(
     client: dask.distributed.Client,
     repo: dvc.repo.Repo,
@@ -110,10 +118,12 @@ def parallel_submit(
     queue_entries = get_all_queue_entries(repo)
     experiments = []
 
+    cleanup_data = []
+
     for stage in stages:
         log.critical(f"Preparing experiment '{stages[stage]}'")
         entry, infofile = queue_entries[stages[stage]]
-        tasks.setup_exp(dataclasses.asdict(entry))
+        executor = tasks.setup_exp(dataclasses.asdict(entry))
 
         # we use get here, because some stages won't be queued, such as dependency files
         successors = [
@@ -126,9 +136,26 @@ def parallel_submit(
             pure=False,
             key=entry.name,
         )
+
+        cleanup_data.append(
+            {
+                "executor": executor,
+                "infofile": infofile,
+                "entry_dict": dataclasses.asdict(entry),
+            }
+        )
+        # mapping[f"{entry.name}-collect"] = client.submit(
+        #     collect_and_cleanup,
+        #     executor=executor,
+        #     infofile=infofile,
+        #     entry_dict=dataclasses.asdict(entry),
+        #     job=mapping[stage],
+        #     pure=False,
+        #     key=f"{entry.name}-collect",
+        # )
         experiments.append(entry.name)
 
-    return mapping, experiments
+    return mapping, experiments, cleanup_data
 
 
 def experiment_submit(
@@ -139,10 +166,11 @@ def experiment_submit(
         experiments = list(queue_entries.keys())
     mapping = {}
     print(f"Submitting experiments: {experiments}")
+    cleanup_data = []
     for experiment in experiments:
         log.critical(f"Preparing experiment '{experiment}'")
         entry, infofile = queue_entries[experiment]
-        tasks.setup_exp(dataclasses.asdict(entry))
+        executor = tasks.setup_exp(dataclasses.asdict(entry))
 
         mapping[experiment] = client.submit(
             exec_run,
@@ -151,4 +179,19 @@ def experiment_submit(
             pure=False,
             key=entry.name,
         )
-    return mapping, list(mapping.keys())
+        mapping[f"{entry.name}-collect"] = client.submit(
+            collect_and_cleanup,
+            entry_dict=dataclasses.asdict(entry),
+            job=mapping[experiment],
+            pure=False,
+            key=f"{entry.name}-collect",
+        )
+
+        cleanup_data.append(
+            {
+                "executor": executor,
+                "infofile": infofile,
+                "entry_dict": dataclasses.asdict(entry),
+            }
+        )
+    return mapping, list(mapping.keys()), cleanup_data
