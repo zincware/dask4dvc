@@ -79,12 +79,6 @@ def get_all_queue_entries(
     }
 
 
-def exec_run(infofile: str, successors: list = None) -> None:
-    """Execute a queued experiment via its infofile."""
-    # ! Do not use dvc.cli.main
-    subprocess.check_call(["dvc", "exp", "exec-run", "--infofile", infofile])
-
-
 def remove_experiments(experiments: typing.List[str] = None) -> None:
     """Remove queued experiments."""
     repo = dvc.repo.Repo()
@@ -103,10 +97,16 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
     dvc.cli.main(["exp", "remove"] + found_experiments)
 
 
-def collect_and_cleanup(
-    future: dask.distributed.Future, entry_dict: dict, infofile: str
-) -> None:
-    """Collect the results of a finished experiment and clean up."""
+def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> None:
+    """Reproduce an experiment."""
+    with dask.distributed.Lock("dvc"):
+        executor = tasks.setup_exp(entry_dict=entry_dict)
+        log.info(
+            f"Setup Experiment '{executor.info.name}' at '{executor.info.root_dir}' "
+        )
+
+    subprocess.check_call(["dvc", "exp", "exec-run", "--infofile", infofile])
+
     with dask.distributed.Lock("dvc"):
         try:
             tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
@@ -122,42 +122,17 @@ def collect_and_cleanup(
                 executor.cleanup(infofile)
 
 
-def _setup_exp(entry_dict: dict, successors: list) -> None:
-    """Run dvc setup exp with kwargs for building a graph."""
-    with dask.distributed.Lock("dvc"):
-        executor = tasks.setup_exp(entry_dict=entry_dict)
-        log.info(
-            f"Setup Experiment '{executor.info.name}' at '{executor.info.root_dir}' "
-        )
-
-
 def submit_to_dask(
     client: dask.distributed.Client, infofile: str, entry: QueueEntry, successors: list
 ) -> dask.distributed.Future:
     """Submit a queued experiment to run with Dask."""
-    setup = client.submit(
-        _setup_exp,
+    return client.submit(
+        reproduce_experiment,
         entry_dict=dataclasses.asdict(entry),
+        infofile=infofile,
         successors=successors,
         pure=False,
-        key=f"setup-{entry.name}",
-    )
-
-    future = client.submit(
-        exec_run,
-        infofile=infofile,
-        successors=[setup],
-        pure=False,
         key=entry.name,
-    )
-
-    return client.submit(
-        collect_and_cleanup,
-        future,
-        entry_dict=dataclasses.asdict(entry),
-        infofile=infofile,
-        pure=False,
-        key=f"cleanup-{entry.name}",
     )
 
 
