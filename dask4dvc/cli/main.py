@@ -62,7 +62,6 @@ def repro(
         raise typer.Exit(1)
 
     repo = dvc.repo.Repo()
-    stages = dvc_repro.queue_consecutive_stages(repo, targets, option)
 
     if config is not None:
         assert address is None, "Can not use address and config file"
@@ -77,7 +76,7 @@ def repro(
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
 
-        mapping = dvc_repro.parallel_submit(client, repo, stages)
+        mapping = dvc_repro.parallel_submit(client, repo, targets)
 
         wait_for_futures(client, mapping)
         if all(x.status == "finished" for x in mapping.values()):

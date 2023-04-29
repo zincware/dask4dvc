@@ -13,6 +13,8 @@ from dvc.repo.experiments.queue.base import QueueEntry
 from dvc.repo.reproduce import _get_steps
 from dvc.stage import PipelineStage
 
+from dask4dvc.utils.dask import wait_for_futures
+
 log = logging.getLogger(__name__)
 
 
@@ -160,10 +162,12 @@ def submit_to_dask(
 def parallel_submit(
     client: dask.distributed.Client,
     repo: dvc.repo.Repo,
-    stages: typing.Dict[PipelineStage, str],
+    targets: typing.List[str],
 ) -> typing.Tuple[typing.Dict[PipelineStage, dask.distributed.Future], typing.List[str],]:
     """Submit experiments in parallel."""
     mapping = {}
+
+    stages = queue_consecutive_stages(repo, targets)
     queue_entries = get_all_queue_entries(repo)
 
     for stage in stages:
@@ -195,3 +199,36 @@ def experiment_submit(
         mapping[experiment] = submit_to_dask(client, infofile, entry, None)
 
     return mapping
+
+
+def reproduce(
+    repo: dvc.repo.Repo,
+    targets=None,
+    recursive=False,
+    pipeline=False,
+    all_pipelines=False,
+    after_repro_callback=None,  # TODO
+    client: dask.distributed.Client = None,
+    prefix: str = None,
+    **kwargs,
+) -> typing.List[dvc.stage.PipelineStage]:
+    """Parallel Exectuion drop-in replacement for 'dvc.repo.Repo.reproduce'.
+
+    Use with functools.partial to set the client and prefix
+    """
+    if targets is None:
+        targets = []
+    mapping = parallel_submit(
+        client,
+        targets,
+        force=kwargs.get("force", False),
+        root_dir=repo.root_dir,
+        prefix=prefix,
+    )
+    results: typing.Dict[str, list] = wait_for_futures(client, mapping)
+    result = []
+    for stages in results.values():
+        if isinstance(stages, str):  # TODO this should always be a list?
+            stages = [stages]
+        result.extend([repo.stage.get_target(x) for x in stages])
+    return result
