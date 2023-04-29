@@ -166,9 +166,9 @@ def parallel_submit(
 ) -> typing.Tuple[typing.Dict[PipelineStage, dask.distributed.Future], typing.List[str],]:
     """Submit experiments in parallel."""
     mapping = {}
-
-    stages = queue_consecutive_stages(repo, targets)
-    queue_entries = get_all_queue_entries(repo)
+    with dask.distributed.Lock("dvc"):
+        stages = queue_consecutive_stages(repo, targets)
+        queue_entries = get_all_queue_entries(repo)
 
     for stage in stages:
         log.debug(f"Preparing experiment '{stages[stage]}'")
