@@ -205,3 +205,24 @@ def test_multi_complex_graph(repo_path: pathlib.Path) -> None:
 
     result = runner.invoke(app, ["repro"])
     assert result.exit_code == 0
+
+
+@pytest.mark.skip(reason="very slow and no additional coverage")
+def test_massiv_parallel_graph(repo_path: pathlib.Path) -> None:
+    """Test a larger graph."""
+    with zntrack.Project(automatic_node_names=True) as project:
+        data = [CreateData(inputs=i) for i in range(50)]
+        io = [InputsToOutputs(inputs=data[i].output) for i in range(50)]
+
+    project.run(repro=False)
+
+    repo = git.Repo()
+    repo.git.add(all=True)
+    repo.index.commit("Initial Commit")
+
+    result = runner.invoke(app, ["repro"])
+    assert result.exit_code == 0
+
+    for i in range(50):
+        io[i].load()
+        assert io[i].output == i
