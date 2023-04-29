@@ -8,6 +8,7 @@ import uuid
 import dask.distributed
 import dvc.cli
 import dvc.repo
+from dvc.repo.experiments.executor.base import ExecutorInfo
 from dvc.repo.experiments.queue import tasks
 from dvc.repo.experiments.queue.base import QueueEntry
 from dvc.repo.reproduce import _get_steps
@@ -98,7 +99,9 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
     dvc.cli.main(["exp", "remove"] + found_experiments)
 
 
-def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> str:
+def reproduce_experiment(
+    entry_dict: dict, infofile: str, successors: list, patch: bool
+) -> str:
     """Reproduce an experiment."""
     log.info(f"Reproducing experiment '{entry_dict['name']}'")
     with dask.distributed.Lock("dvc"):
@@ -110,7 +113,18 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> s
         #  but add a new one
         dvc.cli.main(["exp", "remove", executor.info.name])
 
-    subprocess.check_call(["dvc", "exp", "exec-run", "--infofile", infofile])
+    client: dask.distributed.Client = dask.distributed.get_client()
+    cmd = [
+        "dask4dvc",
+        "exec-run",
+        "--infofile",
+        infofile,
+        "--client",
+        client.scheduler.address,
+    ]
+    if patch:
+        cmd.append("--patch")
+    subprocess.check_call(cmd)
 
     with dask.distributed.Lock("dvc"):
         try:
@@ -119,12 +133,12 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> s
         finally:
             executor.cleanup(infofile)
 
-    return executor.info.name
+    return executor.info
 
 
-def get_experiment_callback(name: dask.distributed.Future) -> None:
+def get_experiment_callback(executor_info: dask.distributed.Future) -> None:
     """Get callback to run after an experiment is done."""
-    name = name.result()
+    executor_info: ExecutorInfo = executor_info.result()
     with dask.distributed.Lock("dvc"):
         repo = dvc.repo.Repo()
         queue = repo.experiments.celery_queue
@@ -133,18 +147,22 @@ def get_experiment_callback(name: dask.distributed.Future) -> None:
                 continue
             args, kwargs, _embed = msg.decode()
             entry_dict = kwargs.get("entry_dict", args[0])
-            if entry_dict["name"] == name:
+            if entry_dict["name"] == executor_info.name:
                 queue.celery.reject(msg.delivery_tag)
         if dask.distributed.Variable("cleanup").get():
             # this one should only be called if the experiment should truly be removed
-            dvc.cli.main(["exp", "remove", name])
+            dvc.cli.main(["exp", "remove", executor_info.name])
         if dask.distributed.Variable("repro").get():
             # load experiments results into workspace
-            dvc.cli.main(["repro", "--single-item", name])
+            dvc.cli.main(["repro", "--single-item", executor_info.name])
 
 
 def submit_to_dask(
-    client: dask.distributed.Client, infofile: str, entry: QueueEntry, successors: list
+    client: dask.distributed.Client,
+    infofile: str,
+    entry: QueueEntry,
+    successors: list,
+    patch: bool = False,
 ) -> dask.distributed.Future:
     """Submit a queued experiment to run with Dask."""
     experiment = client.submit(
@@ -152,6 +170,7 @@ def submit_to_dask(
         entry_dict=dataclasses.asdict(entry),
         infofile=infofile,
         successors=successors,
+        patch=patch,
         pure=False,
         key=entry.name,
     )
@@ -196,7 +215,7 @@ def experiment_submit(
         log.critical(f"Preparing experiment '{experiment}'")
         entry, infofile = queue_entries[experiment]
 
-        mapping[experiment] = submit_to_dask(client, infofile, entry, None)
+        mapping[experiment] = submit_to_dask(client, infofile, entry, None, patch=True)
 
     return mapping
 
@@ -220,10 +239,8 @@ def reproduce(
         targets = []
     mapping = parallel_submit(
         client,
+        repo,
         targets,
-        force=kwargs.get("force", False),
-        root_dir=repo.root_dir,
-        prefix=prefix,
     )
     results: typing.Dict[str, list] = wait_for_futures(client, mapping)
     result = []

@@ -1,9 +1,11 @@
 """All methods that come directly from 'dask4dvc' CLI interace."""
 
+import functools
 import importlib.metadata
 import logging
 import subprocess
 import typing
+import unittest.mock
 import webbrowser
 
 import dask.distributed
@@ -134,6 +136,25 @@ def version_callback(value: bool) -> None:
     if value:
         typer.echo(f"dask4dvc {importlib.metadata.version('dask4dvc')}")
         raise typer.Exit()
+
+
+@app.command()
+def exec_run(
+    infofile: str = typer.Option(...),
+    client: str = typer.Option(...),
+    patch: bool = typer.Option(False),
+):
+    client = dask.distributed.Client(client)
+    if patch:
+        unittest.mock.patch(
+            "dvc.repo.reproduce.reproduce",
+            wraps=functools.partial(
+                dvc_repro.reproduce,
+                client=client,
+            ),
+        ).start()
+
+    dvc.cli.main(["exp", "exec-run", "--infofile", infofile])
 
 
 @app.callback()
