@@ -138,7 +138,7 @@ def get_experiment_callback(name: dask.distributed.Future) -> None:
             dvc.cli.main(["exp", "remove", name])
         if dask.distributed.Variable("repro").get():
             # load experiments results into workspace
-            dvc.cli.main(["repro", name])
+            dvc.cli.main(["repro", "--single-item", name])
 
 
 def submit_to_dask(
