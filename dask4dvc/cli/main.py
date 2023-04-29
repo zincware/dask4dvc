@@ -69,13 +69,15 @@ def repro(
         address = get_cluster_from_config(config)
 
     with dask.distributed.Client(address) as client:
+        dask.distributed.Variable("cleanup").set(cleanup)
+        dask.distributed.Variable("repro").set(True)
         if dashboard:
             webbrowser.open(client.dashboard_link)
         if max_workers is not None:
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
 
-        mapping, experiments = dvc_repro.parallel_submit(client, repo, stages)
+        mapping = dvc_repro.parallel_submit(client, repo, stages)
 
         wait_for_futures(client, mapping)
         if all(x.status == "finished" for x in mapping.values()):
@@ -84,8 +86,6 @@ def repro(
             dask.distributed.wait(
                 client.submit(subprocess.check_call, ["dvc", "repro", *targets])
             )
-        if cleanup:
-            dvc_repro.remove_experiments(experiments)
 
         if not leave:
             _ = input("Press Enter to close the client")
@@ -113,13 +113,15 @@ def run(
         address = get_cluster_from_config(config)
 
     with dask.distributed.Client(address) as client:
+        dask.distributed.Variable("cleanup").set(False)
+        dask.distributed.Variable("repro").set(False)
         if dashboard:
             webbrowser.open(client.dashboard_link)
         if max_workers is not None:
             client.cluster.adapt(minimum=1, maximum=max_workers)
         log.info(client)
 
-        mapping, _ = dvc_repro.experiment_submit(client, repo, targets)
+        mapping = dvc_repro.experiment_submit(client, repo, targets)
 
         wait_for_futures(client, mapping)
         # dvc_repro.remove_experiments(experiments)

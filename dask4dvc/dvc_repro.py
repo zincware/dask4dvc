@@ -96,7 +96,7 @@ def remove_experiments(experiments: typing.List[str] = None) -> None:
     dvc.cli.main(["exp", "remove"] + found_experiments)
 
 
-def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> None:
+def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> str:
     """Reproduce an experiment."""
     log.info(f"Reproducing experiment '{entry_dict['name']}'")
     with dask.distributed.Lock("dvc"):
@@ -104,6 +104,9 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> N
         log.info(
             f"Setup Experiment '{executor.info.name}' at '{executor.info.root_dir}' "
         )
+        # we remove the experiment because collecting will not overwrite it,
+        #  but add a new one
+        dvc.cli.main(["exp", "remove", executor.info.name])
 
     subprocess.check_call(["dvc", "exp", "exec-run", "--infofile", infofile])
 
@@ -114,12 +117,35 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> N
         finally:
             executor.cleanup(infofile)
 
+    return executor.info.name
+
+
+def get_experiment_callback(name: dask.distributed.Future) -> None:
+    """Get callback to run after an experiment is done."""
+    name = name.result()
+    with dask.distributed.Lock("dvc"):
+        repo = dvc.repo.Repo()
+        queue = repo.experiments.celery_queue
+        for msg in queue.celery.iter_queued():
+            if msg.headers.get("task") != tasks.run_exp.name:
+                continue
+            args, kwargs, _embed = msg.decode()
+            entry_dict = kwargs.get("entry_dict", args[0])
+            if entry_dict["name"] == name:
+                queue.celery.reject(msg.delivery_tag)
+        if dask.distributed.Variable("cleanup").get():
+            # this one should only be called if the experiment should truly be removed
+            dvc.cli.main(["exp", "remove", name])
+        if dask.distributed.Variable("repro").get():
+            # load experiments results into workspace
+            dvc.cli.main(["repro", name])
+
 
 def submit_to_dask(
     client: dask.distributed.Client, infofile: str, entry: QueueEntry, successors: list
 ) -> dask.distributed.Future:
     """Submit a queued experiment to run with Dask."""
-    return client.submit(
+    experiment = client.submit(
         reproduce_experiment,
         entry_dict=dataclasses.asdict(entry),
         infofile=infofile,
@@ -127,6 +153,8 @@ def submit_to_dask(
         pure=False,
         key=entry.name,
     )
+    experiment.add_done_callback(get_experiment_callback)
+    return experiment
 
 
 def parallel_submit(
@@ -137,7 +165,6 @@ def parallel_submit(
     """Submit experiments in parallel."""
     mapping = {}
     queue_entries = get_all_queue_entries(repo)
-    experiments = []
 
     for stage in stages:
         log.debug(f"Preparing experiment '{stages[stage]}'")
@@ -148,9 +175,7 @@ def parallel_submit(
         ]
         mapping[stage] = submit_to_dask(client, infofile, entry, successors)
 
-        experiments.append(entry.name)
-
-    return mapping, experiments
+    return mapping
 
 
 def experiment_submit(
@@ -169,4 +194,4 @@ def experiment_submit(
 
         mapping[experiment] = submit_to_dask(client, infofile, entry, None)
 
-    return mapping, list(mapping.keys())
+    return mapping
