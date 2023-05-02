@@ -1,4 +1,5 @@
 [![Coverage Status](https://coveralls.io/repos/github/zincware/dask4dvc/badge.svg?branch=main)](https://coveralls.io/github/zincware/dask4dvc?branch=main)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/zincware/dask4dvc/main.svg)](https://results.pre-commit.ci/latest/github/zincware/dask4dvc/main)
 ![PyTest](https://github.com/zincware/dask4dvc/actions/workflows/pytest.yaml/badge.svg)
 [![PyPI version](https://badge.fury.io/py/dask4dvc.svg)](https://badge.fury.io/py/dask4dvc)
 [![zincware](https://img.shields.io/badge/Powered%20by-zincware-darkcyan)](https://github.com/zincware)
