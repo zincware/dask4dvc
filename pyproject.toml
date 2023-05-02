@@ -52,5 +52,5 @@ extend-ignore = [
     "D213", "D203", "ANN401", "ANN101"
 ]
 
-[codespell]
+[tool.codespell]
 skip = "poetry.lock"
