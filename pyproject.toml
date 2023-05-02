@@ -53,4 +53,4 @@ extend-ignore = [
 ]
 
 [codespell]
-skip = "*.lock"
+skip = "poetry.lock"
