@@ -128,7 +128,7 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> s
                     if entry_dict["name"] == executor.info.name:
                         queue.celery.reject(msg.delivery_tag)
                 if dask.distributed.Variable("cleanup").get():
-                    # this one should only be called if the experiment 
+                    # this one should only be called if the experiment
                     # should truly be removed
                     dvc.cli.main(["exp", "remove", executor.info.name])
                 if dask.distributed.Variable("repro").get():
@@ -136,6 +136,7 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> s
                     dvc.cli.main(["repro", "--single-item", executor.info.name])
 
     return executor.info.name
+
 
 def submit_to_dask(
     client: dask.distributed.Client, infofile: str, entry: QueueEntry, successors: list
