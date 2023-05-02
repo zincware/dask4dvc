@@ -51,3 +51,6 @@ select = ["E", "F", "D", "N", "C", "ANN", "I"]
 extend-ignore = [
     "D213", "D203", "ANN401", "ANN101"
 ]
+
+[codespell]
+skip = "*.lock"
