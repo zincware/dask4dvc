@@ -1,4 +1,4 @@
-"""All methods that come directly from 'dask4dvc' CLI interace."""
+"""All methods that come directly from 'dask4dvc' CLI interface."""
 
 import importlib.metadata
 import logging
@@ -8,6 +8,7 @@ import webbrowser
 
 import dask.distributed
 import dvc.cli
+
 import dvc.repo
 import typer
 
@@ -44,7 +45,7 @@ def clean() -> None:
 @app.command()
 def repro(
     targets: typing.List[str] = typer.Argument(
-        None, help="Name of stages to reproduce. Leave emtpy to run the full graph."
+        None, help="Name of stages to reproduce. Leave empty to run the full graph."
     ),
     address: str = typer.Option(None, help=Help.address),
     leave: bool = typer.Option(True, help=Help.leave),
@@ -94,7 +95,7 @@ def repro(
 @app.command()
 def run(
     targets: typing.List[str] = typer.Argument(
-        None, help="Name of the DVC experiments to reproduce. Leave emtpy to run all."
+        None, help="Name of the DVC experiments to reproduce. Leave empty to run all."
     ),
     address: str = typer.Option(None, help=Help.address),
     leave: bool = typer.Option(True, help=Help.leave),

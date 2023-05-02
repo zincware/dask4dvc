@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/dask4dvc.svg)](https://badge.fury.io/py/dask4dvc)
 [![zincware](https://img.shields.io/badge/Powered%20by-zincware-darkcyan)](https://github.com/zincware)
 
-# Dask4DVC - Distributed Node Exectuion
+# Dask4DVC - Distributed Node Execution
 
 [DVC](dvc.org) provides tools for building and executing the computational graph
 locally through various methods. The `dask4dvc` package combines
