@@ -116,7 +116,7 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> s
             tasks.collect_exp(proc_dict=None, entry_dict=entry_dict)
         finally:
             executor.cleanup(infofile)
-            
+
             with dask.distributed.Lock("dvc"):
                 repo = dvc.repo.Repo()
                 queue = repo.experiments.celery_queue
