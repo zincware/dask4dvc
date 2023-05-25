@@ -25,13 +25,10 @@ dask4dvc = 'dask4dvc.cli.main:app'
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "^3.4.4"
-black = "^22.12.0"
-ruff = "^0.0.262"
 pytest = "^7.1.2"
 pytest-xdist = "^2.5.0"
 coverage = "^6.4.2"
 pre-commit = "^2.20.0"
-pylint = "^2.15.5"
 
 # TODO remove znlib here!
 zntrack = {git = "https://github.com/zincware/zntrack"}
