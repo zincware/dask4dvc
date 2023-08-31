@@ -117,28 +117,25 @@ def reproduce_experiment(entry_dict: dict, infofile: str, successors: list) -> s
         finally:
             executor.cleanup(infofile)
 
+            with dask.distributed.Lock("dvc"):
+                repo = dvc.repo.Repo()
+                queue = repo.experiments.celery_queue
+                for msg in queue.celery.iter_queued():
+                    if msg.headers.get("task") != tasks.run_exp.name:
+                        continue
+                    args, kwargs, _embed = msg.decode()
+                    entry_dict = kwargs.get("entry_dict", args[0])
+                    if entry_dict["name"] == executor.info.name:
+                        queue.celery.reject(msg.delivery_tag)
+                if dask.distributed.Variable("cleanup").get():
+                    # this one should only be called if the experiment
+                    # should truly be removed
+                    dvc.cli.main(["exp", "remove", executor.info.name])
+                if dask.distributed.Variable("repro").get():
+                    # load experiments results into workspace
+                    dvc.cli.main(["repro", "--single-item", executor.info.name])
+
     return executor.info.name
-
-
-def get_experiment_callback(name: dask.distributed.Future) -> None:
-    """Get callback to run after an experiment is done."""
-    name = name.result()
-    with dask.distributed.Lock("dvc"):
-        repo = dvc.repo.Repo()
-        queue = repo.experiments.celery_queue
-        for msg in queue.celery.iter_queued():
-            if msg.headers.get("task") != tasks.run_exp.name:
-                continue
-            args, kwargs, _embed = msg.decode()
-            entry_dict = kwargs.get("entry_dict", args[0])
-            if entry_dict["name"] == name:
-                queue.celery.reject(msg.delivery_tag)
-        if dask.distributed.Variable("cleanup").get():
-            # this one should only be called if the experiment should truly be removed
-            dvc.cli.main(["exp", "remove", name])
-        if dask.distributed.Variable("repro").get():
-            # load experiments results into workspace
-            dvc.cli.main(["repro", "--single-item", name])
 
 
 def submit_to_dask(
@@ -153,7 +150,6 @@ def submit_to_dask(
         pure=False,
         key=entry.name,
     )
-    experiment.add_done_callback(get_experiment_callback)
     return experiment
 
 
