@@ -1,4 +1,5 @@
 """Dask4DVC to DVC repo interface."""
+
 import dataclasses
 import logging
 import subprocess
@@ -161,7 +162,10 @@ def parallel_submit(
     client: dask.distributed.Client,
     repo: dvc.repo.Repo,
     stages: typing.Dict[PipelineStage, str],
-) -> typing.Tuple[typing.Dict[PipelineStage, dask.distributed.Future], typing.List[str],]:
+) -> typing.Tuple[
+    typing.Dict[PipelineStage, dask.distributed.Future],
+    typing.List[str],
+]:
     """Submit experiments in parallel."""
     mapping = {}
     queue_entries = get_all_queue_entries(repo)

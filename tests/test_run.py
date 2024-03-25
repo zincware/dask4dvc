@@ -1,4 +1,5 @@
 """Test the 'dask4dvc' CLI."""
+
 import pathlib
 import random
 import typing
