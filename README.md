@@ -1,3 +1,10 @@
+
+> [!NOTE]
+> The usage of `dask` and `distributed` and the task to implement dvc experiments made this project very convoluted.
+> It will no longer be maintained: checkout https://github.com/zincware/paraffin for a simpler version instead.
+
+
+
 [![Coverage Status](https://coveralls.io/repos/github/zincware/dask4dvc/badge.svg?branch=main)](https://coveralls.io/github/zincware/dask4dvc?branch=main)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/zincware/dask4dvc/main.svg)](https://results.pre-commit.ci/latest/github/zincware/dask4dvc/main)
 ![PyTest](https://github.com/zincware/dask4dvc/actions/workflows/pytest.yaml/badge.svg)
