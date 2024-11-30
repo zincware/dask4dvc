@@ -1,4 +1,5 @@
 """The 'dask4dvc' package."""
+
 import importlib.metadata
 import logging
 import sys
